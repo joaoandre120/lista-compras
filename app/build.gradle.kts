@@ -5,7 +5,8 @@ plugins {
     // Add the dependency for the Google services Gradle plugin (firebase)
     //id("com.android.application")
     // Add the Google services Gradle plugin
-    id("com.google.gms.google-services")
+    //id("com.google.gms.google-services")
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -60,10 +61,14 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Import the Firebase BoM
-    implementation(platform(libs.firebase.bom))
+    implementation(platform(libs.firebase.bom)) // platform() ativa o BoM
     // TODO: Add the dependencies for Firebase products you want to use
     // When using the BoM, don't specify versions in Firebase dependencies
     // https://firebase.google.com/docs/android/setup#available-libraries
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.kotlinx.coroutines.play.services)
 
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
 }
