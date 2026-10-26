@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             ListaDeComprasTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column() {
+                    Column(modifier = Modifier.padding(innerPadding)) {
                         val vm: AuthViewModel = viewModel()
                         val state by vm.state.collectAsState()
                         Text(text = state.toString())
