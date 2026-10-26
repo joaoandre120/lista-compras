@@ -92,6 +92,10 @@ git clone \<url\> pasta \# clonar para uma pasta
 `git commit -am "mensagem"   \# add + commit (ficheiros já rastreados)`
 
 `git commit --amend          \# alterar o último commit`
+
+`git push origin main        \# enviar para origin (github)`
+
+`git push codeberg main      \# enviar para codeberg`
 ```
 
 
