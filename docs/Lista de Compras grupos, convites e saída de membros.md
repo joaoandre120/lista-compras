@@ -6,7 +6,7 @@ Respostas às dúvidas sobre múltiplos grupos, convites e saída de membros, co
 
 **O modelo de dados já nasce preparado, e o custo no MVP é pequeno.** Deixar para a V2 só compensa se a modelagem inicial for feita pensando em um único grupo, e aí o retrabalho é grande. Por isso:
 
-- **No banco:** o grupo guarda a lista de membros (groups/\{groupId\} com members), e cada lista aponta para um grupo (groupId). Uma pessoa estar em vários grupos é só aparecer em vários documentos groups. Não há custo extra de modelagem.
+- **No banco:** o grupo guarda a lista de membros (`groups/{groupId}` com `members`), e cada lista aponta para um grupo (`groupId`). Uma pessoa estar em vários grupos é só aparecer em vários documentos groups. Não há custo extra de modelagem.
 
 - **Na interface:** no MVP, se a pessoa tem só um grupo, o app nem pergunta "para qual grupo?". A tela de escolha só aparece quando houver dois ou mais.
 
@@ -38,7 +38,7 @@ A ideia inicial era que as listas antigas continuassem aparecendo, mas sem acess
 
 - **Convites** são do grupo (não da lista), e qualquer membro pode convidar.
 
-- **Nome:** displayName em users/\{uid\}, e os itens guardam só o uid.
+- **Nome:** displayName em `users/{uid}`, e os itens guardam só o uid.
 
 - **Preços e histórico:** ficam para depois, sem fechar portas.
 

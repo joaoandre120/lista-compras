@@ -38,10 +38,12 @@ Guia de consulta com tudo o que foi feito para preparar o projeto, com comentár
 
 **Fluxo básico, sempre o mesmo:**
 
+```bash
 git add .                          \# escolhe o que entra no commit  
 git commit -m "O que foi feito"    \# grava a "foto"  
 git push origin main               \# envia ao GitHub  
 git push codeberg main             \# envia ao Codeberg
+```
 
 O -m significa *message* (mensagem do commit). Sem ele, o Git abre um editor de texto.
 
@@ -50,15 +52,21 @@ O -m significa *message* (mensagem do commit). Sem ele, o Git abre um editor de 
 
 O Git tem três níveis de configuração. O mais específico vence: **local** (só o repositório) \> **global** (seu usuário do Windows) \> **system** (o computador todo).
 
-\# Preferência pessoal, pode ir no global:  
-git config --global init.defaultBranch main  
-  
-\# Identidade DENTRO da pasta do projeto (sem --global):  
+```bash
+# Preferência pessoal, pode ir no global:
+git config --global init.defaultBranch main
+```  
+
+```bash
+# Identidade DENTRO da pasta do projeto (sem --global):  
 git config user.name "Seu Nome"  
 git config user.email "seu@email.com"  
-  
-\# Ver de onde vem cada valor:  
+```
+
+```bash
+# Ver de onde vem cada valor:  
 git config --list --show-origin
+```
 
 **Por que usar a configuração local?** Nome e e-mail ficam gravados em **cada commit para sempre** e vão para o GitHub. Se o global tiver o e-mail da empresa, os commits do projeto pessoal sairiam com ele. A configuração local resolve isso.
 
@@ -73,22 +81,30 @@ git config --list --show-origin
 
 A chave é um **par de arquivos**: a **privada** (id\_ed25519) nunca sai do seu computador; a **pública** (id\_ed25519.pub) é a que você cadastra nos sites.
 
+```bash
 ssh-keygen -t ed25519 -C "joao-casa"     \# o rótulo identifica a máquina  
 eval "$(ssh-agent -s)"                   \# Git Bash: inicia o agente  
 ssh-add ~/.ssh/id\_ed25519                \# carrega a chave no agente
+```
 
 Copiar a pública:
 
-- Git Bash: clip \< ~/.ssh/id\_ed25519.pub
+```bash
+# Git Bash: 
+clip \< ~/.ssh/id\_ed25519.pub
 
-- PowerShell: Get-Content ~/.ssh/id\_ed25519.pub | clip
+# PowerShell: 
+Get-Content ~/.ssh/id\_ed25519.pub | clip
+```
 
 Cadastre em **GitHub → Settings → SSH and GPG keys → New SSH key** e em **Codeberg → Settings → SSH / GPG Keys**. A mesma pública pode ir nos dois.
 
 Teste:
 
+```bash
 ssh -T git@github.com      \# esperado: "You've successfully authenticated..."  
 ssh -T git@codeberg.org
+```
 
 Na primeira conexão, confira a impressão digital (*fingerprint*) do servidor com a publicada na documentação oficial antes de responder yes.
 
@@ -104,10 +120,16 @@ A passphrase protege o **arquivo** da chave caso alguém o copie (a senha do Win
 
 2. **Manter e digitar uma vez só:** ativar o agente do Windows (PowerShell como administrador):
 
+```bash
 Get-Service ssh-agent | Set-Service -StartupType Automatic  
 Start-Service ssh-agent
+```
 
-Depois, em um PowerShell normal: ssh-add $env:USERPROFILE\\.ssh\\id\_ed25519. Se o Git continuar pedindo, aponte-o para o OpenSSH do Windows: git config --global core.sshCommand "C:/Windows/System32/OpenSSH/ssh.exe"
+Depois, em um PowerShell normal: 
+
+```bash
+ssh-add $env:USERPROFILE\\.ssh\\id\_ed25519. Se o Git continuar pedindo, aponte-o para o OpenSSH do Windows: git config --global core.sshCommand "C:/Windows/System32/OpenSSH/ssh.exe"
+```
 
 
 ## **5. Criar o projeto no Android Studio**
@@ -116,26 +138,30 @@ Depois, em um PowerShell normal: ssh-add $env:USERPROFILE\\.ssh\\id\_ed25519. Se
 
 - **Package name** (ex.: com.seunome.listacompras): vira o identificador do app e é usado no Firebase. Escolha com calma.
 
-- **Pasta do projeto sem acentos nem espaços** (ex.: G:\\Projects\\Joao\\ListaCompras). Ferramentas de build do Android às vezes falham com caracteres especiais no caminho.
+- **Pasta do projeto sem acentos nem espaços** (ex.: `G:\Projects\Joao\ListaCompras`). Ferramentas de build do Android às vezes falham com caracteres especiais no caminho.
 
-- O Android Studio já cria um .gitignore adequado.
+- O Android Studio já cria um `.gitignore` adequado.
 
 
 ## **6. Versionar e enviar ao GitHub**
 
 Na pasta do projeto:
 
+```bash
 git init -b main  
 git config user.name "Seu Nome"  
 git config user.email "seu@email.com"  
 git add .  
-git status          \# CONFIRA: não deve listar build/, .gradle/ nem local.properties  
-git commit -m "Cria projeto inicial"
+git status          # CONFIRA: não deve listar build/, .gradle/ nem local.properties  
+git commit -m "chore: cria estrutura inicial do projeto Android"
+```
 
 No GitHub: **New repository**, privado, e **sem** marcar README, .gitignore ou licença (o repositório precisa nascer vazio, senão o histórico diverge e o primeiro push é recusado).
 
+```bash
 git remote add origin git@github.com:SEU-USUARIO/lista-compras.git  
 git push -u origin main
+```
 
 Use o endereço da aba **SSH**. O -u liga a main local à do remoto, então depois basta git push. O origin é só um apelido.
 
@@ -144,17 +170,21 @@ Use o endereço da aba **SSH**. O -u liga a main local à do remoto, então depo
 
 Crie o repositório vazio no Codeberg e:
 
+```bash
 git remote add codeberg git@codeberg.org:SEU-USUARIO/lista-compras.git  
 git remote -v                     \# deve listar origin e codeberg  
 git push -u codeberg main
+```
 
 O Codeberg é voltado a projetos de código aberto: confira os termos de uso se o repositório for privado.
 
 **Se aparecer Connection reset by ... port 22:** o problema é de **rede** (firewall da empresa, roteador ou instabilidade do servidor), e não de chave ou permissão. A conexão caiu antes da autenticação. Diagnóstico: ssh -vT git@codeberg.org, comparar com ssh -T git@github.com e testar outra rede (hotspot do celular). Alternativa: usar HTTPS com **token de acesso** (Codeberg → Settings → Applications → Generate New Token, com permissão de escrita em repositórios):
 
+```bash
 git remote set-url codeberg https://codeberg.org/SEU-USUARIO/lista-compras.git
+```
 
-No prompt, o usuário é o seu e a "senha" é o **token**. (No seu caso, depois voltou a funcionar.)
+No prompt, o usuário é o seu e a "senha" é o **token**.
 
 
 ## **8. Firebase**
@@ -167,7 +197,7 @@ No prompt, o usuário é o seu e a "senha" é o **token**. (No seu caso, depois 
 
 4. Seguir os trechos do console para o Gradle (os números de versão mudam, copie os atuais):
 
-   - raiz: declarar o plugin com.google.gms.google-services;
+   - raiz: declarar o plugin `com.google.gms.google-services`;
 
    - módulo app: aplicar o plugin e adicionar o **Firebase BoM** + firebase-auth + firebase-firestore;
 
@@ -177,13 +207,13 @@ O **BoM** (Bill of Materials) mantém as versões das bibliotecas do Firebase co
 
 ### **O google-services.json e o Git**
 
-Ele contém identificadores do projeto. Pela documentação do Firebase, não são segredos como uma senha: a proteção real vem das **regras de segurança do Firestore**. Mesmo assim, no seu caso ele está no .gitignore.
+Ele contém identificadores do projeto. Pela documentação do Firebase, não são segredos como uma senha: a proteção real vem das **regras de segurança do Firestore**. Mesmo assim, é bom ele estar no `.gitignore`.
 
-- Em qual .gitignore? Escolha **um**. Na raiz: app/google-services.json. Na pasta app/: só google-services.json.
+- Em qual .gitignore? Escolha **um**. Na raiz: `app/google-services.json`. Na pasta app/: só `google-services.json`.
 
-- **Armadilha:** o .gitignore só vale para arquivos ainda **não rastreados**. Para ver se o Git ainda rastreia: git ls-files app/google-services.json. Se imprimir o caminho, pare de rastrear com git rm --cached app/google-services.json e faça um commit. Atenção: **ele continua nos commits antigos**.
+- **Armadilha:** o .gitignore só vale para arquivos ainda **não rastreados**. Para ver se o Git ainda rastreia: `git ls-files app/google-services.json`. Se imprimir o caminho, pare de rastrear com `git rm --cached app/google-services.json` e faça um commit. Atenção: **ele continua nos commits antigos**.
 
-- **Repositório público:** quem clonar precisa criar o próprio projeto Firebase, registrar o app e colocar o próprio google-services.json. Boas práticas: um google-services.json.example, um README com o passo a passo e o arquivo firestore.rules versionado. Antes de abrir o repositório, revise o histórico.
+- **Repositório público:** quem clonar precisa criar o próprio projeto Firebase, registrar o app e colocar o próprio `google-services.json`. Boas práticas: um `google-services.json.example`, um README com o passo a passo e o arquivo firestore.rules versionado. Antes de abrir o repositório, revise o histórico.
 
 - Quem só **usa o app** (um APK que você gerou) não precisa de nada: conversa com o **seu** backend.
 
@@ -192,28 +222,30 @@ Ele contém identificadores do projeto. Pela documentação do Firebase, não s�
 
 O que não foi enviado não aparece na outra máquina. A regra:
 
-- **Ao começar:** git pull antes de mexer em qualquer coisa.
+- **Ao começar:** `git pull` antes de mexer em qualquer coisa.
 
-- **Ao terminar:** commit e git push para os **dois** remotos.
+- **Ao terminar:** ` git commit` e `git push` para os **dois** remotos.
 
 Se esquecer o push, o código fica preso no outro computador. Se editar nos dois sem sincronizar, o Git pedirá que você resolva um conflito.
 
 
 ## **10. Preparar outro computador (ex.: casa)**
 
-1. Instalar **Git** e **Android Studio** (o local.properties é gerado sozinho na primeira abertura).
+1. Instalar **Git** e **Android Studio** (o `local.properties` é gerado sozinho na primeira abertura).
 
 2. Gerar uma **nova chave SSH** e cadastrar a pública no GitHub e no Codeberg, com títulos diferentes.
 
 3. Clonar e adicionar o segundo remoto (o clone configura só **um** remoto):
 
+```bash
 git clone git@github.com:SEU-USUARIO/lista-compras.git  
 cd lista-compras  
 git remote add codeberg git@codeberg.org:SEU-USUARIO/lista-compras.git  
 git config user.name "Seu Nome"  
 git config user.email "seu@email.com"
+```
 
-4. Baixar de novo o **google-services.json** no Firebase (Configurações do projeto → Seus apps) e colocar em app/, porque está no .gitignore e não vem no clone.
+4. Baixar de novo o **google-services.json** no Firebase (Configurações do projeto → Seus apps) e colocar em `app/`, porque está no `.gitignore` e não vem no clone.
 
 5. **Mais adiante**, se usar login com Google: cadastrar o **SHA-1** do certificado de debug deste computador no Firebase (cada máquina tem o seu).
 
@@ -235,14 +267,18 @@ git config user.email "seu@email.com"
 
 ## **12. Referência rápida**
 
-git status                  \# o que mudou  
-git log --oneline           \# histórico resumido  
-git log -p                  \# histórico com as mudanças  
-git diff                    \# mudanças ainda não adicionadas  
-git remote -v               \# remotos configurados  
-git pull origin main        \# trazer novidades  
-git push origin main        \# enviar ao GitHub  
-git push codeberg main      \# enviar ao Codeberg
+```bash
+git status                  # o que mudou  
+git log --oneline           # histórico resumido  
+git log -p                  # histórico com as mudanças  
+git diff                    # mudanças ainda não adicionadas  
+git remote -v               # remotos configurados  
+git pull origin main        # trazer novidades e atualizar arquivos locais
+git fetch                   # trazer novidades, mas NÃO mexe nos seus arquivos locais
+git merge                   # juntar o histórico baixado pelo fetch na sua branch atual 
+git push origin main        # enviar ao GitHub  
+git push codeberg main      # enviar ao Codeberg
+```
 
 
 ## **13. Próximos passos**
@@ -251,7 +287,7 @@ git push codeberg main      \# enviar ao Codeberg
 
 2. Criar o **Firestore**. Atenção: a **região** do banco não pode ser alterada depois.
 
-3. Modelar as coleções: users/\{uid\}, lists/\{listId\} (nome, dono, members) e lists/\{listId\}/items/\{itemId\}. Cada item é um **documento separado**, para edições simultâneas não conflitarem.
+3. Modelar as coleções: `users/{uid}`, `lists/{listId}` (nome, dono, members) e `lists/{listId}/items/{itemId}`. Cada item é um **documento separado**, para edições simultâneas não conflitarem.
 
 4. Escrever as **regras de segurança** (só quem está em members lê e escreve).
 
