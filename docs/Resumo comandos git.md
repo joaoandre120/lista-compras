@@ -87,6 +87,12 @@ git clone \<url\> pasta \# clonar para uma pasta
 
 `git add .                   \# adicionar tudo`
 
+
+`git restore --staged ficheiro   \# tirar do stage (rastreamento), ou`
+
+`git reset HEAD ficheiro     \# tirar do stage (rastreamento)`
+
+
 `git commit -m "mensagem"    \# criar commit`
 
 `git commit -am "mensagem"   \# add + commit (ficheiros já rastreados)`
