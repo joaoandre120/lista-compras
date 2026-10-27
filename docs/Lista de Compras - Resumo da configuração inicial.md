@@ -160,7 +160,7 @@ No GitHub: **New repository**, privado, e **sem** marcar README, .gitignore ou l
 
 ```bash
 git remote add origin git@github.com:SEU-USUARIO/lista-compras.git  
-git push -u origin main
+git push -u origin main           # o primeiro envio precisa do paramentro -u
 ```
 
 Use o endereço da aba **SSH**. O -u liga a main local à do remoto, então depois basta git push. O origin é só um apelido.
@@ -172,8 +172,8 @@ Crie o repositório vazio no Codeberg e:
 
 ```bash
 git remote add codeberg git@codeberg.org:SEU-USUARIO/lista-compras.git  
-git remote -v                     \# deve listar origin e codeberg  
-git push -u codeberg main
+git remote -v                     # deve listar origin e codeberg  
+git push -u codeberg main         # o primeiro envio precisa do paramentro -u
 ```
 
 O Codeberg é voltado a projetos de código aberto: confira os termos de uso se o repositório for privado.
