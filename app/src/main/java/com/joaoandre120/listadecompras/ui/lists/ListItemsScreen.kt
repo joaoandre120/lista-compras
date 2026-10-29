@@ -59,5 +59,5 @@ fun ListItemsScreenContent(
 @Preview(showBackground = true)
 @Composable
 private fun GroupListsScreenContentPreview() {
-    GroupListsScreenContent(groupId = "grupo-123", onListClick = {})
+    ListItemsScreenContent(listId = "grupo-123", onListClick = {})
 }
