@@ -51,8 +51,8 @@ fun ListItemsScreenContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("Grupo: $listId")
-        Button(onClick = { onListClick("lista-teste") }) { Text("Abrir lista de teste") }
+        Text("Lista: $listId")
+        Text("Lista de teste")
     }
 }
 
