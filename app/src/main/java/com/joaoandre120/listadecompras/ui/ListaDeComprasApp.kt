@@ -41,6 +41,10 @@ fun ListaDeComprasApp() {
             }
         },
     ) { innerPadding ->
-        AppNavDisplay(navigationState, navigator, Modifier.padding(innerPadding))
+        AppNavDisplay(
+            navigationState,
+            navigator,
+            Modifier.padding(innerPadding)
+        )
     }
 }
