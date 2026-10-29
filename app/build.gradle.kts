@@ -62,6 +62,10 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
+
+    implementation(libs.androidx.compose.material.iconsExtended)
+
+
     // Import the Firebase BoM
     implementation(platform(libs.firebase.bom)) // platform() ativa o BoM
     // TODO: Add the dependencies for Firebase products you want to use
