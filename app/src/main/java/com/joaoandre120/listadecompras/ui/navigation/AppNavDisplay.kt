@@ -10,6 +10,8 @@ import com.joaoandre120.listadecompras.ui.groups.GroupsScreen
 import com.joaoandre120.listadecompras.ui.lists.GroupListsScreen
 import com.joaoandre120.listadecompras.ui.lists.ListItemsScreen
 import androidx.compose.material3.Text
+import com.joaoandre120.listadecompras.ui.lists.ListsScope
+import com.joaoandre120.listadecompras.ui.lists.ListsScreen
 
 /**
  * Exibe a pilha de navegação atual. O `entryProvider` liga cada key à sua tela,
@@ -30,15 +32,20 @@ fun AppNavDisplay(
             entry<Route.Groups> {
                 GroupsScreen(onGroupClick = { navigator.navigate(Route.GroupLists(it)) })
             }
+
             entry<Route.PrivateLists> {
-                Text("Listas privadas (fatia 2)") // provisório
-            }
-            entry<Route.GroupLists> { key ->
-                GroupListsScreen(
-                    groupId = key.groupId,
+                ListsScreen(
+                    scope = ListsScope.Private,
                     onListClick = { navigator.navigate(Route.ListItems(it)) },
                 )
             }
+            entry<Route.GroupLists> { key ->
+                ListsScreen(
+                    scope = ListsScope.Group(key.groupId),
+                    onListClick = { navigator.navigate(Route.ListItems(it)) },
+                )
+            }
+
             entry<Route.ListItems> { key ->
                 ListItemsScreen(
                     listId = key.listId,
