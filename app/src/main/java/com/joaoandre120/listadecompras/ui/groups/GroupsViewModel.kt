@@ -7,6 +7,7 @@ import com.joaoandre120.listadecompras.data.model.Group
 import com.joaoandre120.listadecompras.data.repository.AuthRepository
 import com.joaoandre120.listadecompras.data.repository.GroupRepository
 import com.joaoandre120.listadecompras.data.repository.InviteException
+import com.joaoandre120.listadecompras.data.repository.UserRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,16 +29,24 @@ data class InviteInfo(val groupName: String, val code: String)
  *
  * @property groups grupos do usuário, atualizados em tempo real.
  * @property isLoading `true` até a primeira resposta da lista.
- * @property isBusy `true` enquanto uma ação (criar, entrar, convidar) está em andamento.
+ * @property isBusy `true` enquanto uma ação (criar, entrar, convidar, salvar nome) está em andamento.
  * @property invite convite a exibir; `null` quando não há nenhum.
  * @property message mensagem pontual para a tela mostrar; `null` quando não há.
+ * @property currentUid uid do usuário logado; `null` até o login terminar.
+ * @property displayName nome do usuário logado; vazio enquanto não definido.
+ * @property showNameDialog `true` quando a tela deve pedir ou editar o nome.
+ * @property memberNames mapa uid -> nome dos membros já conhecidos.
  */
 data class GroupsUiState(
     val groups: List<Group> = emptyList(),
     val isLoading: Boolean = true,
     val isBusy: Boolean = false,
     val invite: InviteInfo? = null,
-    val message: String? = null
+    val message: String? = null,
+    val currentUid: String? = null,
+    val displayName: String = "",
+    val showNameDialog: Boolean = false,
+    val memberNames: Map<String, String> = emptyMap()
 )
 
 /**
@@ -48,7 +57,8 @@ data class GroupsUiState(
  */
 class GroupsViewModel(
     private val authRepository: AuthRepository = AuthRepository(),
-    private val groupRepository: GroupRepository = GroupRepository()
+    private val groupRepository: GroupRepository = GroupRepository(),
+    private val userRepository: UserRepository = UserRepository()
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GroupsUiState())
@@ -56,7 +66,78 @@ class GroupsViewModel(
 
     private var uid: String? = null
 
-    init { observeGroups() }
+    /** uids cujo nome já foi buscado (ou está sendo); evita repetir leituras. */
+    private val knownUids = mutableSetOf<String>()
+
+    init { start() }
+
+    /** Obtém o uid e passa a observar o perfil e os grupos do usuário. */
+    private fun start() {
+        viewModelScope.launch {
+            try {
+                val currentUid = authRepository.ensureSignedIn()
+                uid = currentUid
+                _state.update { it.copy(currentUid = currentUid) }
+                observeProfile(currentUid)
+                groupRepository.observeMyGroups(currentUid)
+                    .catch { e -> showError(e) }
+                    .collect { list ->
+                        _state.update { it.copy(groups = list, isLoading = false) }
+                        loadMissingNames(list)
+                    }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                showError(e)
+            }
+        }
+    }
+
+    /**
+     * Observa o perfil do usuário logado. Se o documento não existir, pede o nome.
+     *
+     * @param currentUid uid do usuário logado.
+     */
+    private fun observeProfile(currentUid: String) {
+        viewModelScope.launch {
+            userRepository.observeProfile(currentUid)
+                .catch { e -> showError(e) }
+                .collect { profile ->
+                    _state.update {
+                        it.copy(
+                            displayName = profile?.displayName.orEmpty(),
+                            // Só abre sozinho quando falta o perfil; fechar é por ação explícita.
+                            showNameDialog = it.showNameDialog || profile == null,
+                            memberNames = if (profile != null)
+                                it.memberNames + (currentUid to profile.displayName)
+                            else it.memberNames
+                        )
+                    }
+                }
+        }
+    }
+
+    /**
+     * Busca o nome dos membros que ainda não conhecemos, numa única consulta em blocos.
+     * Se falhar, os uids voltam à fila para uma nova tentativa na próxima atualização da lista.
+     *
+     * @param groups grupos cujos membros devem ter nome.
+     */
+    private fun loadMissingNames(groups: List<Group>) {
+        val missing = groups.flatMap { it.memberIds }.toSet() - knownUids - setOfNotNull(uid)
+        if (missing.isEmpty()) return
+        knownUids += missing
+        viewModelScope.launch {
+            try {
+                val names = userRepository.getDisplayNames(missing)
+                _state.update { it.copy(memberNames = it.memberNames + names) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                knownUids -= missing
+            }
+        }
+    }
 
     /** Obtém o uid e passa a observar os grupos do usuário. */
     private fun observeGroups() {
@@ -89,6 +170,36 @@ class GroupsViewModel(
             return
         }
         runAction { groupRepository.createGroup(name, id) }
+    }
+
+    /**
+     * Salva o nome de exibição e fecha o diálogo.
+     *
+     * @param name nome digitado; em branco ou acima de 40 caracteres gera aviso.
+     */
+    fun saveDisplayName(name: String) {
+        val id = uid ?: return
+        val clean = name.trim()
+        if (clean.isEmpty()) {
+            _state.update { it.copy(message = "Digite seu nome") }
+            return
+        }
+        if (clean.length > 40) {
+            _state.update { it.copy(message = "Use no máximo 40 caracteres") }
+            return
+        }
+        runAction {
+            userRepository.saveDisplayName(id, clean)
+            _state.update { it.copy(showNameDialog = false) }
+        }
+    }
+
+    /** Abre o diálogo para editar o nome. */
+    fun editName() = _state.update { it.copy(showNameDialog = true) }
+
+    /** Fecha o diálogo, exceto se ainda não há nome (o nome é obrigatório). */
+    fun dismissNameDialog() = _state.update {
+        if (it.displayName.isBlank()) it else it.copy(showNameDialog = false)
     }
 
     /**
