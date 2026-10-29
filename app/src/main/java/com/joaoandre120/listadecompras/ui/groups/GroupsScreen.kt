@@ -41,8 +41,9 @@ import com.joaoandre120.listadecompras.ui.theme.ListaDeComprasTheme
 /**
  * Ponto de entrada da tela de grupos.
  *
- * Coleta o estado do [viewModel], guarda o texto dos campos e trata os eventos
- * (criar, entrar, convidar, compartilhar), repassando tudo ao [GroupsScreenContent].
+ * Coleta o estado do [viewModel], guarda o texto dos campos (novo grupo, código
+ * do convite e nome de exibição) e trata os eventos (criar, entrar, convidar,
+ * compartilhar, salvar nome), repassando tudo ao [GroupsScreenContent].
  *
  * @param modifier modificador do contêiner (normalmente o padding do Scaffold).
  * @param viewModel fonte do estado e das ações da tela.
@@ -59,6 +60,8 @@ fun GroupsScreen(
     // Estado só de digitação: fica aqui, não no ViewModel. Sobrevive à rotação.
     var newGroupName by rememberSaveable { mutableStateOf("") }
     var joinCode by rememberSaveable { mutableStateOf("") }
+    // Reinicia com o nome atual toda vez que o diálogo abre; sobrevive à rotação.
+    var nameInput by rememberSaveable(state.showNameDialog) { mutableStateOf(state.displayName) }
 
     // Mostra a mensagem e avisa o ViewModel para apagá-la.
     LaunchedEffect(state.message) {
@@ -86,6 +89,11 @@ fun GroupsScreen(
         onInviteClick = viewModel::createInvite,
         onShareInvite = { invite -> shareInvite(context, invite) },
         onDismissInvite = viewModel::inviteDismissed,
+        nameInput = nameInput,
+        onNameInputChange = { nameInput = it.take(40) },
+        onEditName = viewModel::editName,
+        onSaveDisplayName = { viewModel.saveDisplayName(nameInput) },
+        onDismissNameDialog = viewModel::dismissNameDialog,
         modifier = modifier
     )
 }
@@ -93,17 +101,22 @@ fun GroupsScreen(
 /**
  * Conteúdo da tela de grupos, sem estado próprio: só desenha o que recebe.
  *
- * @param state estado da tela (lista, carregando, ocupado, convite).
+ * @param state estado da tela (grupos, carregando, ocupado, convite, nome e nomes dos membros).
  * @param newGroupName texto atual do campo "Novo grupo".
  * @param joinCode texto atual do campo "Código do convite".
+ * @param nameInput texto atual do campo do diálogo de nome de exibição.
  * @param snackbarHostState hospedeiro das mensagens pontuais.
  * @param onNewGroupNameChange chamado a cada alteração do nome do novo grupo.
  * @param onJoinCodeChange chamado a cada alteração do código digitado.
+ * @param onNameInputChange chamado a cada alteração do nome no diálogo.
  * @param onCreateGroup chamado ao tocar em "Criar".
  * @param onJoinWithCode chamado ao tocar em "Entrar".
  * @param onInviteClick chamado ao tocar em "Convidar", com o grupo escolhido.
  * @param onShareInvite chamado ao tocar em "Compartilhar" no diálogo do convite.
  * @param onDismissInvite chamado ao fechar o diálogo do convite.
+ * @param onEditName chamado ao tocar no nome do topo para editá-lo.
+ * @param onSaveDisplayName chamado ao tocar em "Salvar" no diálogo de nome.
+ * @param onDismissNameDialog chamado ao cancelar o diálogo de nome.
  * @param modifier modificador do contêiner.
  */
 @Composable
@@ -119,6 +132,11 @@ fun GroupsScreenContent(
     onInviteClick: (Group) -> Unit,
     onShareInvite: (InviteInfo) -> Unit,
     onDismissInvite: () -> Unit,
+    nameInput: String,
+    onNameInputChange: (String) -> Unit,
+    onEditName: () -> Unit,
+    onSaveDisplayName: () -> Unit,
+    onDismissNameDialog: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -128,7 +146,17 @@ fun GroupsScreenContent(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Meus grupos", style = MaterialTheme.typography.headlineSmall)
+            //Text("Meus grupos", style = MaterialTheme.typography.headlineSmall)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Meus grupos",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = onEditName) {
+                    Text(state.displayName.ifBlank { "Definir nome" })
+                }
+            }
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -165,6 +193,7 @@ fun GroupsScreenContent(
                     items(state.groups, key = { it.id }) { group ->
                         GroupCard(
                             group = group,
+                            membersText = memberNamesText(group, state),
                             inviteEnabled = !state.isBusy,
                             onInviteClick = { onInviteClick(group) }
                         )
@@ -183,18 +212,31 @@ fun GroupsScreenContent(
             onDismiss = onDismissInvite
         )
     }
+
+    if (state.showNameDialog) {
+        DisplayNameDialog(
+            name = nameInput,
+            canDismiss = state.displayName.isNotBlank(),
+            isBusy = state.isBusy,
+            onNameChange = onNameInputChange,
+            onSave = onSaveDisplayName,
+            onDismiss = onDismissNameDialog
+        )
+    }
 }
 
 /**
  * Cartão de um grupo na lista.
  *
  * @param group grupo exibido.
+ * @param membersText nomes dos membros, já formatados (ver [memberNamesText]).
  * @param inviteEnabled `false` desabilita o botão enquanto outra ação está em andamento.
  * @param onInviteClick chamado ao tocar em "Convidar".
  */
 @Composable
 private fun GroupCard(
     group: Group,
+    membersText: String,
     inviteEnabled: Boolean,
     onInviteClick: () -> Unit
 ) {
@@ -209,6 +251,7 @@ private fun GroupCard(
                     "${group.memberIds.size} membro(s)",
                     style = MaterialTheme.typography.bodySmall
                 )
+                Text(membersText, style = MaterialTheme.typography.bodySmall)
             }
             TextButton(enabled = inviteEnabled, onClick = onInviteClick) { Text("Convidar") }
         }
@@ -254,6 +297,58 @@ private fun shareInvite(context: Context, invite: InviteInfo) {
     context.startActivity(Intent.createChooser(send, null))
 }
 
+/**
+ * Monta o texto com os nomes dos membros de [group].
+ *
+ * @param group grupo cujos membros serão listados.
+ * @param state estado com o uid logado e o mapa de nomes conhecidos.
+ * @return nomes separados por vírgula; "Você" para o usuário logado e "Membro" quando o nome não é conhecido.
+ */
+private fun memberNamesText(group: Group, state: GroupsUiState): String =
+    group.memberIds.joinToString(", ") { id ->
+        if (id == state.currentUid) "Você" else state.memberNames[id] ?: "Membro"
+    }
+
+/**
+ * Diálogo para definir ou editar o nome de exibição.
+ *
+ * @param name texto atual do campo.
+ * @param canDismiss `false` na primeira vez, quando o nome é obrigatório.
+ * @param isBusy `true` enquanto o nome está sendo salvo.
+ * @param onNameChange chamado a cada alteração do texto.
+ * @param onSave chamado ao tocar em "Salvar".
+ * @param onDismiss chamado ao cancelar (só quando [canDismiss]).
+ */
+@Composable
+private fun DisplayNameDialog(
+    name: String,
+    canDismiss: Boolean,
+    isBusy: Boolean,
+    onNameChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val dismissButton: (@Composable () -> Unit)? = if (canDismiss) {
+        { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    } else null
+
+    AlertDialog(
+        onDismissRequest = { if (canDismiss) onDismiss() },
+        title = { Text("Como você quer ser chamado?") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = onNameChange,
+                label = { Text("Seu nome") },
+                singleLine = true,
+                supportingText = { Text("${name.length}/40") }
+            )
+        },
+        confirmButton = { TextButton(enabled = !isBusy, onClick = onSave) { Text("Salvar") } },
+        dismissButton = dismissButton
+    )
+}
+
 // ---------- Previews: consomem só o GroupsScreenContent, com dados falsos ----------
 
 private val previewGroups = listOf(
@@ -266,7 +361,14 @@ private val previewGroups = listOf(
 private fun GroupsScreenContentPreview() {
     ListaDeComprasTheme {
         GroupsScreenContent(
-            state = GroupsUiState(groups = previewGroups, isLoading = false),
+            //state = GroupsUiState(groups = previewGroups, isLoading = false),
+            state = GroupsUiState(
+                groups = previewGroups,
+                isLoading = false,
+                currentUid = "a",
+                displayName = "João",
+                memberNames = mapOf("a" to "João", "b" to "Maria", "c" to "Ana", "d" to "Pedro")
+            ),
             newGroupName = "",
             joinCode = "",
             snackbarHostState = remember { SnackbarHostState() },
@@ -276,7 +378,12 @@ private fun GroupsScreenContentPreview() {
             onJoinWithCode = {},
             onInviteClick = {},
             onShareInvite = {},
-            onDismissInvite = {}
+            onDismissInvite = {},
+            nameInput = "",
+            onNameInputChange = {},
+            onEditName = {},
+            onSaveDisplayName = {},
+            onDismissNameDialog = {},
         )
     }
 }
@@ -296,7 +403,12 @@ private fun GroupsScreenContentEmptyPreview() {
             onJoinWithCode = {},
             onInviteClick = {},
             onShareInvite = {},
-            onDismissInvite = {}
+            onDismissInvite = {},
+            nameInput = "",
+            onNameInputChange = {},
+            onEditName = {},
+            onSaveDisplayName = {},
+            onDismissNameDialog = {},
         )
     }
 }
@@ -320,7 +432,37 @@ private fun GroupsScreenContentInvitePreview() {
             onJoinWithCode = {},
             onInviteClick = {},
             onShareInvite = {},
-            onDismissInvite = {}
+            onDismissInvite = {},
+            nameInput = "",
+            onNameInputChange = {},
+            onEditName = {},
+            onSaveDisplayName = {},
+            onDismissNameDialog = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Pedindo o nome")
+@Composable
+private fun GroupsScreenContentNameDialogPreview() {
+    ListaDeComprasTheme {
+        GroupsScreenContent(
+            state = GroupsUiState(isLoading = false, showNameDialog = true),
+            newGroupName = "",
+            joinCode = "",
+            snackbarHostState = remember { SnackbarHostState() },
+            onNewGroupNameChange = {},
+            onJoinCodeChange = {},
+            onCreateGroup = {},
+            onJoinWithCode = {},
+            onInviteClick = {},
+            onShareInvite = {},
+            onDismissInvite = {},
+            nameInput = "Jo",
+            onNameInputChange = {},
+            onEditName = {},
+            onSaveDisplayName = {},
+            onDismissNameDialog = {}
         )
     }
 }
