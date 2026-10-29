@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Lista de Compras</string>
+
+    <string name="nav_groups_title">Grupos</string>
+    <string name="nav_groups_label">Grupos</string>
+    <string name="nav_private_lists_title">Listas privadas</string>
+    <string name="nav_private_lists_label">Privadas</string>
+    <string name="nav_group_lists_title">Listas do grupo</string>
+    <string name="nav_list_items_title">Itens</string>
+    <string name="nav_back">Voltar</string>
+
 </resources>
