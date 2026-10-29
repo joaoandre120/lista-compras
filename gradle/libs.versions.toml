@@ -13,6 +13,10 @@ firebaseBom = "35.1.0"
 kotlinxCoroutines = "1.11.0"   # confira no Maven Central / GitHub do kotlinx.coroutines
 googleServices = "4.5.0" # use a que o Firebase mostrou no passo do Gradle
 
+nav3Core = "1.2.0"
+lifecycleViewmodelNav3 = "2.11.0"
+kotlinxSerializationCore = "1.9.0"
+
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,9 +42,17 @@ androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "l
 
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
 
+androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }
+androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }
+androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNav3" }
+kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerializationCore" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+
+# mesmo version.ref do seu Kotlin (2.2.10)
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
