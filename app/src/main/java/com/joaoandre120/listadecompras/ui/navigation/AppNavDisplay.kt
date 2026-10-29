@@ -7,9 +7,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.joaoandre120.listadecompras.ui.groups.GroupsScreen
-import com.joaoandre120.listadecompras.ui.lists.GroupListsScreen
 import com.joaoandre120.listadecompras.ui.lists.ListItemsScreen
-import androidx.compose.material3.Text
 import com.joaoandre120.listadecompras.ui.lists.ListsScope
 import com.joaoandre120.listadecompras.ui.lists.ListsScreen
 
