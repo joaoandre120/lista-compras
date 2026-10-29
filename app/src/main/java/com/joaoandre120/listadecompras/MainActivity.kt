@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.joaoandre120.listadecompras.data.repository.GroupRepository
+import com.joaoandre120.listadecompras.ui.ListaDeComprasApp
 import com.joaoandre120.listadecompras.ui.auth.AuthState
 import com.joaoandre120.listadecompras.ui.auth.AuthViewModel
 import com.joaoandre120.listadecompras.ui.groups.GroupsScreen
@@ -36,8 +37,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ListaDeComprasTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    GroupsScreen(modifier = Modifier.padding(innerPadding))
+                ListaDeComprasApp()
+                if (false) {
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                        GroupsScreen(
+                            onGroupClick = {},
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
                 }
                 if (false) {
                     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->

@@ -50,6 +50,7 @@ import com.joaoandre120.listadecompras.ui.theme.ListaDeComprasTheme
  */
 @Composable
 fun GroupsScreen(
+    onGroupClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GroupsViewModel = viewModel()
 ) {
@@ -94,6 +95,7 @@ fun GroupsScreen(
         onEditName = viewModel::editName,
         onSaveDisplayName = { viewModel.saveDisplayName(nameInput) },
         onDismissNameDialog = viewModel::dismissNameDialog,
+        onGroupClick = onGroupClick,
         modifier = modifier
     )
 }
@@ -117,6 +119,7 @@ fun GroupsScreen(
  * @param onEditName chamado ao tocar no nome do topo para editá-lo.
  * @param onSaveDisplayName chamado ao tocar em "Salvar" no diálogo de nome.
  * @param onDismissNameDialog chamado ao cancelar o diálogo de nome.
+ * @param onGroupClick Chamado ao tocar em um grupo; recebe o id do grupo.
  * @param modifier modificador do contêiner.
  */
 @Composable
@@ -137,6 +140,7 @@ fun GroupsScreenContent(
     onEditName: () -> Unit,
     onSaveDisplayName: () -> Unit,
     onDismissNameDialog: () -> Unit,
+    onGroupClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -195,7 +199,8 @@ fun GroupsScreenContent(
                             group = group,
                             membersText = memberNamesText(group, state),
                             inviteEnabled = !state.isBusy,
-                            onInviteClick = { onInviteClick(group) }
+                            onInviteClick = { onInviteClick(group) },
+                            onClick = { onGroupClick(group.id) },
                         )
                     }
                 }
@@ -238,7 +243,8 @@ private fun GroupCard(
     group: Group,
     membersText: String,
     inviteEnabled: Boolean,
-    onInviteClick: () -> Unit
+    onInviteClick: () -> Unit,
+    onClick: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -384,6 +390,7 @@ private fun GroupsScreenContentPreview() {
             onEditName = {},
             onSaveDisplayName = {},
             onDismissNameDialog = {},
+            onGroupClick = {},
         )
     }
 }
@@ -409,6 +416,7 @@ private fun GroupsScreenContentEmptyPreview() {
             onEditName = {},
             onSaveDisplayName = {},
             onDismissNameDialog = {},
+            onGroupClick = {},
         )
     }
 }
@@ -438,6 +446,7 @@ private fun GroupsScreenContentInvitePreview() {
             onEditName = {},
             onSaveDisplayName = {},
             onDismissNameDialog = {},
+            onGroupClick = {},
         )
     }
 }
@@ -462,7 +471,8 @@ private fun GroupsScreenContentNameDialogPreview() {
             onNameInputChange = {},
             onEditName = {},
             onSaveDisplayName = {},
-            onDismissNameDialog = {}
+            onDismissNameDialog = {},
+            onGroupClick = {},
         )
     }
 }
