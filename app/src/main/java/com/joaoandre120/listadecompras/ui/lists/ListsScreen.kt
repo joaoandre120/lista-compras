@@ -189,13 +189,19 @@ private fun ListCard(
             modifier = Modifier.padding(start = 16.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = list.name,
-                style = MaterialTheme.typography.titleMedium,
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(vertical = 16.dp)
-            )
+            ) {
+                Text(
+                    text = list.name,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                purchaseSummary(list)?.let {
+                    Text(text = it, style = MaterialTheme.typography.bodySmall)
+                }
+            }
             if (canDelete) {
                 IconButton(onClick = onDeleteClick) {
                     Icon(Icons.Filled.Delete, contentDescription = "Excluir ${list.name}")
