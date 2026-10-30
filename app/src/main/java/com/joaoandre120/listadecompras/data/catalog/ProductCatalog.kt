@@ -1,7 +1,7 @@
 package com.joaoandre120.listadecompras.data.catalog
 
 import com.joaoandre120.listadecompras.data.model.CatalogProduct
-import java.text.Normalizer
+import com.joaoandre120.listadecompras.data.util.normalizedForSearch
 
 /**
  * Fonte do catálogo de produtos embutido no app.
@@ -18,20 +18,17 @@ object ProductCatalog {
     /**
      * Busca produtos cujo nome contém o texto digitado, ignorando
      * maiúsculas/minúsculas e acentos ("feijao" encontra "Feijão").
+     * Nomes que começam com o texto vêm primeiro.
      *
      * @param query texto digitado pelo usuário.
      * @return produtos que combinam; lista vazia se a consulta estiver em branco.
      */
     fun search(query: String): List<CatalogProduct> {
-        val q = query.normalized()
+        val q = query.normalizedForSearch()
         if (q.isBlank()) return emptyList()
-        return products.filter { it.name.normalized().contains(q) }
+        return products
+            .filter { it.name.normalizedForSearch().contains(q) }
+            .sortedBy { if (it.name.normalizedForSearch().startsWith(q)) 0 else 1 }
     }
 
-    /**
-     * O NFD separa a letra do acento (ã vira a + ~), e o regex remove as marcas (\p{Mn}).
-     */
-    private fun String.normalized(): String =
-        Normalizer.normalize(trim().lowercase(), Normalizer.Form.NFD)
-            .replace("\\p{Mn}+".toRegex(), "")
 }
