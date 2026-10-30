@@ -2,6 +2,7 @@ package com.joaoandre120.listadecompras.ui.lists
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -33,6 +35,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -54,7 +57,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.joaoandre120.listadecompras.data.catalog.ProductCatalog
+import com.joaoandre120.listadecompras.data.catalog.StoreCatalog
 import com.joaoandre120.listadecompras.data.model.CatalogProduct
+import com.joaoandre120.listadecompras.data.model.CatalogStore
 import com.joaoandre120.listadecompras.data.model.ShoppingItem
 import com.joaoandre120.listadecompras.data.model.ShoppingList
 import com.joaoandre120.listadecompras.data.util.IsoDate
@@ -93,6 +98,9 @@ fun ListItemsScreen(
     var storeInput by rememberSaveable(state.showDetailsDialog) {
         mutableStateOf(state.list?.store.orEmpty())
     }
+    val storeSuggestions = remember(storeInput) {
+        StoreCatalog.search(storeInput).filter { it.name != storeInput.trim() }.take(5)
+    }
     var dateInput by rememberSaveable(state.showDetailsDialog) {
         mutableStateOf(state.list?.purchaseDate)
     }
@@ -102,6 +110,7 @@ fun ListItemsScreen(
     val productSuggestions = remember(newItemName) {
         ProductCatalog.search(newItemName).take(5)
     }
+
 
     LaunchedEffect(state.message) {
         state.message?.let {
@@ -122,6 +131,7 @@ fun ListItemsScreen(
         newItemName = newItemName,
         nameInput = nameInput,
         storeInput = storeInput,
+        storeSuggestions = storeSuggestions,
         dateInput = dateInput,
         showDatePicker = showDatePicker,
         snackbarHostState = snackbarHostState,
@@ -187,6 +197,7 @@ fun ListItemsScreenContent(
     onSaveItemName: () -> Unit,
     onDismissEdit: () -> Unit,
     storeInput: String,                       // texto do campo "Supermercado" no diálogo
+    storeSuggestions: List<CatalogStore>,
     dateInput: String?,                       // data do rascunho (AAAA-MM-DD) ou null
     showDatePicker: Boolean,                  // seletor de datas visível
     onEditDetails: () -> Unit,                // tocar no cartão de detalhes
@@ -272,6 +283,7 @@ fun ListItemsScreenContent(
         PurchaseDetailsDialog(
             store = storeInput,
             dateIso = dateInput,
+            storeSuggestions = storeSuggestions,
             onStoreChange = onStoreInputChange,
             onPickDate = { onDatePickerVisibleChange(true) },
             onUseToday = { onDateInputChange(IsoDate.today()) },
@@ -433,6 +445,7 @@ private fun PurchaseDetailsCard(list: ShoppingList, onClick: () -> Unit) {
 private fun PurchaseDetailsDialog(
     store: String,
     dateIso: String?,
+    storeSuggestions: List<CatalogStore>,
     onStoreChange: (String) -> Unit,
     onPickDate: () -> Unit,
     onUseToday: () -> Unit,
@@ -452,6 +465,19 @@ private fun PurchaseDetailsDialog(
                     singleLine = true,
                     supportingText = { Text("${store.length}/60") }
                 )
+                if (storeSuggestions.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        storeSuggestions.forEach { store ->
+                            SuggestionChip(
+                                onClick = { onStoreChange(store.name) },
+                                label = { Text(store.name) }
+                            )
+                        }
+                    }
+                }
                 OutlinedButton(onClick = onPickDate, modifier = Modifier.fillMaxWidth()) {
                     Text(dateIso?.let { IsoDate.display(it) } ?: "Escolher data")
                 }
@@ -535,6 +561,7 @@ private fun ListItemsScreenContentPreview() {
             onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
             onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {},
             productSuggestions = emptyList(), onAddProduct = {},
+            storeSuggestions = emptyList(),
         )
     }
 }
@@ -562,6 +589,7 @@ private fun ListItemsScreenContentEmptyPreview() {
             onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
             onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {},
             productSuggestions = emptyList(), onAddProduct = {},
+            storeSuggestions = emptyList(),
         )
     }
 }
@@ -593,6 +621,7 @@ private fun ListItemsScreenContentEditingPreview() {
             onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
             onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {},
             productSuggestions = emptyList(), onAddProduct = {},
+            storeSuggestions = emptyList(),
         )
     }
 }
@@ -615,6 +644,7 @@ private fun ListItemsScreenContentDetailsPreview() {
             nameInput = "",
             storeInput = "Extra",
             dateInput = "2026-10-30",
+            storeSuggestions = StoreCatalog.search("").take(4),
             showDatePicker = false,
             snackbarHostState = remember { SnackbarHostState() },
             onNewItemNameChange = {}, onAddItem = {},
@@ -649,6 +679,7 @@ private fun ListItemsScreenContentSuggestionsPreview() {
             onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
             onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {},
             onAddProduct = {},
+            storeSuggestions = emptyList(),
         )
     }
 }
