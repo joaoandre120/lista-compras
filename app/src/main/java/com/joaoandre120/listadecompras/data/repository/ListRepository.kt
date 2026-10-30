@@ -67,6 +67,22 @@ class ListRepository(
     }
 
     /**
+     * Grava o supermercado e a data da compra de uma lista (ambos opcionais).
+     *
+     * Os dois campos são sempre enviados: `null` limpa o valor. As regras validam o tamanho
+     * do nome do supermercado (até 60) e o formato da data (`AAAA-MM-DD`).
+     *
+     * @param listId id da lista.
+     * @param store nome do supermercado já sem espaços nas pontas; `null` para limpar.
+     * @param purchaseDate data no formato `AAAA-MM-DD`; `null` para limpar.
+     */
+    suspend fun updatePurchaseDetails(listId: String, store: String?, purchaseDate: String?) {
+        lists.document(listId)
+            .update(mapOf("store" to store, "purchaseDate" to purchaseDate))
+            .await()
+    }
+
+    /**
      * Observa em tempo real o documento de uma lista.
      *
      * Emite `null` quando o servidor confirma que a lista não existe (mais). Offline, um
