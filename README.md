@@ -102,7 +102,7 @@ O plano Spark oferece cota diária de leituras e gravações (50 mil e 20 mil, r
 
 ## Contribuindo / fluxo de trabalho
 
-- Commits pequenos e atômicos, no padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/): `feat:`, `fix:`, `docs:`, `style:`, `chore:`.
+- Commits pequenos e atômicos, no padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/): `feat:`, `fix:`, `docs:`, `style:`, `chore:`, `test:`, `refactor:`.
 - KDoc em tudo que for criado ou alterado.
 - O projeto é espelhado no GitHub e no Codeberg.
 
