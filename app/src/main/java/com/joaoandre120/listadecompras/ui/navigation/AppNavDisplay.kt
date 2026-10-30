@@ -47,7 +47,6 @@ fun AppNavDisplay(
             entry<Route.ListItems> { key ->
                 ListItemsScreen(
                     listId = key.listId,
-                    onListClick = {  }
                 )
             }
         }
