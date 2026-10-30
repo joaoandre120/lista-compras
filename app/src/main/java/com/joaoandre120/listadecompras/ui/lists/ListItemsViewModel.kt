@@ -8,7 +8,9 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.joaoandre120.listadecompras.data.model.ShoppingItem
 import com.joaoandre120.listadecompras.data.repository.AuthRepository
 import com.joaoandre120.listadecompras.data.repository.ItemRepository
+import com.joaoandre120.listadecompras.data.repository.ListRepository
 import com.joaoandre120.listadecompras.ui.common.friendlyErrorMessage
+import com.joaoandre120.listadecompras.ui.common.isPermissionDenied
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,16 +23,19 @@ import kotlinx.coroutines.launch
  * Tudo o que a tela de itens precisa para se desenhar.
  *
  * @property items itens da lista: pendentes primeiro, depois os marcados,
- * cada grupo em ordem alfabética.
+ *           cada grupo em ordem alfabética.
  * @property isLoading `true` até a primeira resposta da consulta.
  * @property message mensagem pontual para a tela mostrar; `null` quando não há.
  * @property itemBeingEdited item cujo nome está sendo editado; `null` com o diálogo fechado.
+ * @property isListUnavailable `true` quando a lista foi excluída ou o acesso foi perdido;
+ *           a tela deve ser fechada.
  */
 data class ListItemsUiState(
     val items: List<ShoppingItem> = emptyList(),
     val isLoading: Boolean = true,
     val message: String? = null,
-    val itemBeingEdited: ShoppingItem? = null
+    val itemBeingEdited: ShoppingItem? = null,
+    val isListUnavailable: Boolean = false,
 )
 
 /**
@@ -46,7 +51,8 @@ data class ListItemsUiState(
 class ListItemsViewModel(
     private val listId: String,
     private val authRepository: AuthRepository = AuthRepository(),
-    private val itemRepository: ItemRepository = ItemRepository()
+    private val itemRepository: ItemRepository = ItemRepository(),
+    private val listRepository: ListRepository = ListRepository(),
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ListItemsUiState())
@@ -61,6 +67,7 @@ class ListItemsViewModel(
         viewModelScope.launch {
             try {
                 uid = authRepository.ensureSignedIn()
+                observeList()
                 itemRepository.observeItems(listId)
                     .catch { e -> showError(e) }
                     .collect { items ->
@@ -124,6 +131,22 @@ class ListItemsViewModel(
         launchSafely { itemRepository.deleteItem(listId, item.id) }
     }
 
+    /** Observa o documento da lista para saber se ela foi excluída. */
+    private fun observeList() {
+        viewModelScope.launch {
+            listRepository.observeList(listId)
+                .catch { e -> showError(e) }
+                .collect { list ->
+                    if (list == null) markListUnavailable()
+                }
+        }
+    }
+
+    /** Sinaliza à tela que a lista não existe mais (ou não é mais acessível). */
+    private fun markListUnavailable() =
+        _state.update { it.copy(isLoading = false, isListUnavailable = true) }
+
+
     /** Chamado pela tela depois de exibir a mensagem, para ela não reaparecer. */
     fun messageShown() = _state.update { it.copy(message = null) }
 
@@ -168,7 +191,12 @@ class ListItemsViewModel(
         }
     }
 
+
     private fun showError(e: Throwable) {
+        if (isPermissionDenied(e)) {
+            markListUnavailable()   // lista excluída ou acesso perdido: não há o que mostrar
+            return
+        }
         _state.update {
             it.copy(
                 isLoading = false,

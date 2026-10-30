@@ -1,5 +1,6 @@
 package com.joaoandre120.listadecompras.ui.lists
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +37,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -52,12 +54,15 @@ import com.joaoandre120.listadecompras.ui.theme.ListaDeComprasTheme
  * edição) e trata os eventos, repassando tudo ao [ListItemsScreenContent].
  *
  * @param listId id da lista (vindo da key de navegação), usado para criar o ViewModel.
+ * @param onListUnavailable chamado quando a lista foi excluída ou deixou de ser
+ *        acessível; quem navega deve voltar à tela anterior.
  * @param modifier modificador do contêiner (normalmente o padding do Scaffold).
  * @param viewModel fonte do estado e das ações da tela.
  */
 @Composable
 fun ListItemsScreen(
     listId: String,
+    onListUnavailable: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ListItemsViewModel = viewModel(factory = ListItemsViewModel.factory(listId)),
 ) {
@@ -69,6 +74,16 @@ fun ListItemsScreen(
     // Reinicia com o nome do item toda vez que o diálogo abre para outro item.
     var nameInput by rememberSaveable(state.itemBeingEdited?.id) {
         mutableStateOf(state.itemBeingEdited?.name.orEmpty())
+    }
+
+    val context = LocalContext.current
+
+    // Lista excluída por outra pessoa: avisa e volta.
+    LaunchedEffect(state.isListUnavailable) {
+        if (state.isListUnavailable) {
+            Toast.makeText(context, "Esta lista não está mais disponível.", Toast.LENGTH_LONG).show()
+            onListUnavailable()
+        }
     }
 
     // Mostra a mensagem e avisa o ViewModel para apagá-la.

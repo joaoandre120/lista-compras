@@ -66,6 +66,30 @@ class ListRepository(
         return ref.id
     }
 
+    /**
+     * Observa em tempo real o documento de uma lista.
+     *
+     * Emite `null` quando o servidor confirma que a lista não existe (mais). Offline, um
+     * documento fora do cache também aparece como inexistente, então nesse caso nada é
+     * emitido: não dá para afirmar que foi excluído. Se as regras negarem a leitura
+     * (lista apagada ou acesso perdido), o fluxo fecha com a exceção.
+     *
+     * @param listId id da lista.
+     * @return fluxo com a lista atual, ou `null` se ela foi excluída.
+     */
+    fun observeList(listId: String): Flow<ShoppingList?> = callbackFlow {
+        val registration = lists.document(listId).addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+            if (snapshot == null) return@addSnapshotListener
+            if (!snapshot.exists() && snapshot.metadata.isFromCache) return@addSnapshotListener
+            trySend(snapshot.toObject(ShoppingList::class.java))   // null se não existir
+        }
+        awaitClose { registration.remove() }
+    }
+
     /** Transforma uma consulta em fluxo; o listener é removido quando ninguém observa mais. */
     private fun observe(query: Query): Flow<List<ShoppingList>> = callbackFlow {
         val registration = query.addSnapshotListener { snapshot, error ->

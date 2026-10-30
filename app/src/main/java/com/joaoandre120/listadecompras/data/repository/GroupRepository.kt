@@ -1,5 +1,6 @@
 package com.joaoandre120.listadecompras.data.repository
 
+import android.util.Log
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.Timestamp
@@ -78,6 +79,7 @@ class GroupRepository(
      */
     suspend fun createInvite(groupId: String, uid: String, maxUses: Int? = null): String {
         val code = InviteCodeGenerator.generate()
+        Log.i("GroupRepository", "createInvite: $code")
         val expires = Timestamp(Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(7) - TimeUnit.MINUTES.toMillis(5)))
         val data = mapOf(
             "groupId" to groupId,
