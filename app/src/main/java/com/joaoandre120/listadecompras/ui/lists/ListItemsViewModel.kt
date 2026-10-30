@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.joaoandre120.listadecompras.data.model.ShoppingItem
+import com.joaoandre120.listadecompras.data.model.ShoppingList
 import com.joaoandre120.listadecompras.data.repository.AuthRepository
 import com.joaoandre120.listadecompras.data.repository.ItemRepository
 import com.joaoandre120.listadecompras.data.repository.ListRepository
@@ -29,6 +30,8 @@ import kotlinx.coroutines.launch
  * @property itemBeingEdited item cujo nome está sendo editado; `null` com o diálogo fechado.
  * @property isListUnavailable `true` quando a lista foi excluída ou o acesso foi perdido;
  *           a tela deve ser fechada.
+ * @property list documento da lista (nome, supermercado e data); `null` até carregar.
+ * @property showDetailsDialog `true` com o diálogo de detalhes da compra aberto.
  */
 data class ListItemsUiState(
     val items: List<ShoppingItem> = emptyList(),
@@ -36,6 +39,8 @@ data class ListItemsUiState(
     val message: String? = null,
     val itemBeingEdited: ShoppingItem? = null,
     val isListUnavailable: Boolean = false,
+    val list: ShoppingList? = null,
+    val showDetailsDialog: Boolean = false,
 )
 
 /**
@@ -131,6 +136,30 @@ class ListItemsViewModel(
         launchSafely { itemRepository.deleteItem(listId, item.id) }
     }
 
+    /** Abre o diálogo de supermercado e data da compra. */
+    fun editDetails() = _state.update { it.copy(showDetailsDialog = true) }
+
+    /** Fecha o diálogo de detalhes sem salvar. */
+    fun dismissDetails() = _state.update { it.copy(showDetailsDialog = false) }
+
+    /**
+     * Salva supermercado e data da compra e fecha o diálogo.
+     *
+     * @param store nome digitado; em branco limpa o campo e acima de 60 caracteres gera um aviso.
+     * @param dateIso data como `AAAA-MM-DD`; `null` limpa a data.
+     */
+    fun savePurchaseDetails(store: String, dateIso: String?) {
+        val clean = store.trim()
+        if (clean.length > 60) {
+            _state.update { it.copy(message = "Use no máximo 60 caracteres no supermercado") }
+            return
+        }
+        _state.update { it.copy(showDetailsDialog = false) }
+        launchSafely {
+            listRepository.updatePurchaseDetails(listId, clean.ifEmpty { null }, dateIso)
+        }
+    }
+
     /** Observa o documento da lista para saber se ela foi excluída. */
     private fun observeList() {
         viewModelScope.launch {
@@ -138,6 +167,7 @@ class ListItemsViewModel(
                 .catch { e -> showError(e) }
                 .collect { list ->
                     if (list == null) markListUnavailable()
+                    else _state.update { it.copy(list = list) }
                 }
         }
     }

@@ -15,19 +15,25 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +51,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.joaoandre120.listadecompras.data.model.ShoppingItem
+import com.joaoandre120.listadecompras.data.model.ShoppingList
+import com.joaoandre120.listadecompras.data.util.IsoDate
 import com.joaoandre120.listadecompras.ui.theme.ListaDeComprasTheme
 
 /**
@@ -68,25 +76,22 @@ fun ListItemsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     // Estado só de digitação: fica aqui, não no ViewModel. Sobrevive à rotação.
     var newItemName by rememberSaveable { mutableStateOf("") }
-    // Reinicia com o nome do item toda vez que o diálogo abre para outro item.
     var nameInput by rememberSaveable(state.itemBeingEdited?.id) {
         mutableStateOf(state.itemBeingEdited?.name.orEmpty())
     }
-
-    val context = LocalContext.current
-
-    // Lista excluída por outra pessoa: avisa e volta.
-    LaunchedEffect(state.isListUnavailable) {
-        if (state.isListUnavailable) {
-            Toast.makeText(context, "Esta lista não está mais disponível.", Toast.LENGTH_LONG).show()
-            onListUnavailable()
-        }
+    // Rascunho do diálogo de detalhes: reinicia com os valores da lista a cada abertura.
+    var storeInput by rememberSaveable(state.showDetailsDialog) {
+        mutableStateOf(state.list?.store.orEmpty())
     }
+    var dateInput by rememberSaveable(state.showDetailsDialog) {
+        mutableStateOf(state.list?.purchaseDate)
+    }
+    var showDatePicker by rememberSaveable(state.showDetailsDialog) { mutableStateOf(false) }
 
-    // Mostra a mensagem e avisa o ViewModel para apagá-la.
     LaunchedEffect(state.message) {
         state.message?.let {
             snackbarHostState.showSnackbar(it)
@@ -94,10 +99,20 @@ fun ListItemsScreen(
         }
     }
 
+    LaunchedEffect(state.isListUnavailable) {
+        if (state.isListUnavailable) {
+            Toast.makeText(context, "Esta lista não está mais disponível.", Toast.LENGTH_LONG).show()
+            onListUnavailable()
+        }
+    }
+
     ListItemsScreenContent(
         state = state,
         newItemName = newItemName,
         nameInput = nameInput,
+        storeInput = storeInput,
+        dateInput = dateInput,
+        showDatePicker = showDatePicker,
         snackbarHostState = snackbarHostState,
         onNewItemNameChange = { newItemName = it.take(100) },
         onAddItem = {
@@ -110,6 +125,12 @@ fun ListItemsScreen(
         onNameInputChange = { nameInput = it.take(100) },
         onSaveItemName = { viewModel.saveItemName(nameInput) },
         onDismissEdit = viewModel::dismissEditing,
+        onEditDetails = viewModel::editDetails,
+        onStoreInputChange = { storeInput = it.take(60) },
+        onDateInputChange = { dateInput = it },
+        onDatePickerVisibleChange = { showDatePicker = it },
+        onSaveDetails = { viewModel.savePurchaseDetails(storeInput, dateInput) },
+        onDismissDetails = viewModel::dismissDetails,
         modifier = modifier
     )
 }
@@ -145,6 +166,15 @@ fun ListItemsScreenContent(
     onNameInputChange: (String) -> Unit,
     onSaveItemName: () -> Unit,
     onDismissEdit: () -> Unit,
+    storeInput: String,                       // texto do campo "Supermercado" no diálogo
+    dateInput: String?,                       // data do rascunho (AAAA-MM-DD) ou null
+    showDatePicker: Boolean,                  // seletor de datas visível
+    onEditDetails: () -> Unit,                // tocar no cartão de detalhes
+    onStoreInputChange: (String) -> Unit,
+    onDateInputChange: (String?) -> Unit,     // escolhida no seletor, "Hoje" ou "Limpar"
+    onDatePickerVisibleChange: (Boolean) -> Unit,
+    onSaveDetails: () -> Unit,
+    onDismissDetails: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -154,6 +184,10 @@ fun ListItemsScreenContent(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            state.list?.let { list ->
+                PurchaseDetailsCard(list = list, onClick = onEditDetails)
+            }
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -196,6 +230,29 @@ fun ListItemsScreenContent(
             onSave = onSaveItemName,
             onDismiss = onDismissEdit
         )
+    }
+
+    if (state.showDetailsDialog) {
+        PurchaseDetailsDialog(
+            store = storeInput,
+            dateIso = dateInput,
+            onStoreChange = onStoreInputChange,
+            onPickDate = { onDatePickerVisibleChange(true) },
+            onUseToday = { onDateInputChange(IsoDate.today()) },
+            onClearDate = { onDateInputChange(null) },
+            onSave = onSaveDetails,
+            onDismiss = onDismissDetails
+        )
+        if (showDatePicker) {
+            PurchaseDatePickerDialog(
+                initialIso = dateInput,
+                onConfirm = {
+                    onDateInputChange(it)
+                    onDatePickerVisibleChange(false)
+                },
+                onDismiss = { onDatePickerVisibleChange(false) }
+            )
+        }
     }
 }
 
@@ -273,6 +330,120 @@ private fun EditItemDialog(
     )
 }
 
+/**
+ * Cartão no topo da tela com o nome da lista, o supermercado e a data da compra.
+ *
+ * @param list lista exibida.
+ * @param onClick chamado ao tocar no cartão, para editar os detalhes.
+ */
+@Composable
+private fun PurchaseDetailsCard(list: ShoppingList, onClick: () -> Unit) {
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(list.name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = purchaseSummary(list)
+                        ?: "Toque para informar supermercado e data da compra",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(Icons.Filled.Edit, contentDescription = "Editar supermercado e data")
+        }
+    }
+}
+
+/**
+ * Diálogo para informar o supermercado e a data da compra.
+ *
+ * @param store texto atual do campo "Supermercado".
+ * @param dateIso data do rascunho (`AAAA-MM-DD`) ou `null`.
+ * @param onStoreChange chamado a cada alteração do supermercado.
+ * @param onPickDate chamado ao tocar no botão da data, para abrir o seletor.
+ * @param onUseToday chamado ao tocar em "Hoje".
+ * @param onClearDate chamado ao tocar em "Limpar".
+ * @param onSave chamado ao tocar em "Salvar".
+ * @param onDismiss chamado ao cancelar.
+ */
+@Composable
+private fun PurchaseDetailsDialog(
+    store: String,
+    dateIso: String?,
+    onStoreChange: (String) -> Unit,
+    onPickDate: () -> Unit,
+    onUseToday: () -> Unit,
+    onClearDate: () -> Unit,
+    onSave: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Detalhes da compra") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = store,
+                    onValueChange = onStoreChange,
+                    label = { Text("Supermercado") },
+                    singleLine = true,
+                    supportingText = { Text("${store.length}/60") }
+                )
+                OutlinedButton(onClick = onPickDate, modifier = Modifier.fillMaxWidth()) {
+                    Text(dateIso?.let { IsoDate.display(it) } ?: "Escolher data")
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onUseToday) { Text("Hoje") }
+                    if (dateIso != null) {
+                        TextButton(onClick = onClearDate) { Text("Limpar data") }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onSave) { Text("Salvar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
+}
+
+/**
+ * Seletor de data da compra. O estado do seletor é só de interface e fica aqui.
+ *
+ * @param initialIso data inicialmente selecionada (`AAAA-MM-DD`) ou `null`.
+ * @param onConfirm chamado ao confirmar, com a data escolhida como `AAAA-MM-DD`.
+ * @param onDismiss chamado ao cancelar.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PurchaseDatePickerDialog(
+    initialIso: String?,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val pickerState = rememberDatePickerState(
+        initialSelectedDateMillis = initialIso?.let { IsoDate.toPickerMillis(it) }
+    )
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                enabled = pickerState.selectedDateMillis != null,
+                onClick = {
+                    pickerState.selectedDateMillis?.let { onConfirm(IsoDate.fromPickerMillis(it)) }
+                }
+            ) { Text("OK") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    ) {
+        DatePicker(state = pickerState)
+    }
+}
+
 // ---------- Previews: consomem só o ListItemsScreenContent, com dados falsos ----------
 
 private val previewItems = listOf(
@@ -297,7 +468,12 @@ private fun ListItemsScreenContentPreview() {
             onDeleteItem = {},
             onNameInputChange = {},
             onSaveItemName = {},
-            onDismissEdit = {}
+            onDismissEdit = {},
+            storeInput = "",
+            dateInput = "",
+            showDatePicker = false,
+            onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
+            onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {},
         )
     }
 }
@@ -318,7 +494,12 @@ private fun ListItemsScreenContentEmptyPreview() {
             onDeleteItem = {},
             onNameInputChange = {},
             onSaveItemName = {},
-            onDismissEdit = {}
+            onDismissEdit = {},
+            storeInput = "",
+            dateInput = "",
+            showDatePicker = false,
+            onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
+            onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {},
         )
     }
 }
@@ -343,7 +524,42 @@ private fun ListItemsScreenContentEditingPreview() {
             onDeleteItem = {},
             onNameInputChange = {},
             onSaveItemName = {},
-            onDismissEdit = {}
+            onDismissEdit = {},
+            storeInput = "",
+            dateInput = "",
+            showDatePicker = false,
+            onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
+            onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Detalhes da compra")
+@Composable
+private fun ListItemsScreenContentDetailsPreview() {
+    ListaDeComprasTheme {
+        ListItemsScreenContent(
+            state = ListItemsUiState(
+                items = previewItems,
+                isLoading = false,
+                list = ShoppingList(
+                    id = "l", name = "Mercado da semana",
+                    store = "Extra", purchaseDate = "2026-10-30"
+                ),
+                showDetailsDialog = true
+            ),
+            newItemName = "",
+            nameInput = "",
+            storeInput = "Extra",
+            dateInput = "2026-10-30",
+            showDatePicker = false,
+            snackbarHostState = remember { SnackbarHostState() },
+            onNewItemNameChange = {}, onAddItem = {},
+            onCheckedChange = { _, _ -> },
+            onEditItem = {}, onDeleteItem = {},
+            onNameInputChange = {}, onSaveItemName = {}, onDismissEdit = {},
+            onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
+            onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {}
         )
     }
 }
