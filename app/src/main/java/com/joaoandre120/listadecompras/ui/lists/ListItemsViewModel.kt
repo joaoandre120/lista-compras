@@ -10,6 +10,7 @@ import com.joaoandre120.listadecompras.data.model.ShoppingList
 import com.joaoandre120.listadecompras.data.repository.AuthRepository
 import com.joaoandre120.listadecompras.data.repository.ItemRepository
 import com.joaoandre120.listadecompras.data.repository.ListRepository
+import com.joaoandre120.listadecompras.data.util.IsoDate
 import com.joaoandre120.listadecompras.ui.common.friendlyErrorMessage
 import com.joaoandre120.listadecompras.ui.common.isPermissionDenied
 import kotlinx.coroutines.CancellationException
@@ -65,6 +66,9 @@ class ListItemsViewModel(
 
     private var uid: String? = null
 
+    /** `true` depois que a data automática já foi pedida nesta sessão; evita gravações repetidas. */
+    private var autoDateRequested = false
+
     init { start() }
 
     /** Obtém o uid e passa a observar os itens da lista. */
@@ -101,13 +105,14 @@ class ListItemsViewModel(
     }
 
     /**
-     * Marca ou desmarca [item].
+     * Marca ou desmarca [item]. Ao marcar, preenche a data da compra com hoje se ela estiver vazia.
      *
      * @param item item alterado.
      * @param checked novo valor, vindo do checkbox.
      */
     fun setChecked(item: ShoppingItem, checked: Boolean) {
         launchSafely { itemRepository.setChecked(listId, item.id, checked) }
+        if (checked) fillPurchaseDateIfEmpty()
     }
 
     /** Abre o diálogo para editar o nome de [item]. */
@@ -158,6 +163,15 @@ class ListItemsViewModel(
         launchSafely {
             listRepository.updatePurchaseDetails(listId, clean.ifEmpty { null }, dateIso)
         }
+    }
+
+    /** Grava a data de hoje na lista se ela ainda não tem data (e já foi carregada). */
+    private fun fillPurchaseDateIfEmpty() {
+        val list = _state.value.list ?: return   // ainda carregando: tenta na próxima marcação
+        if (list.purchaseDate != null || autoDateRequested) return
+        autoDateRequested = true
+        launchSafely { listRepository.setPurchaseDate(listId, IsoDate.today()) }
+        _state.update { it.copy(message = "Data da compra definida como hoje") }
     }
 
     /** Observa o documento da lista para saber se ela foi excluída. */

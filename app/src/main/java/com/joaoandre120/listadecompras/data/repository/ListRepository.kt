@@ -83,6 +83,16 @@ class ListRepository(
     }
 
     /**
+     * Define só a data da compra, sem tocar no supermercado.
+     *
+     * @param listId id da lista.
+     * @param purchaseDate data no formato `AAAA-MM-DD`.
+     */
+    suspend fun setPurchaseDate(listId: String, purchaseDate: String) {
+        lists.document(listId).update("purchaseDate", purchaseDate).await()
+    }
+
+    /**
      * Observa em tempo real o documento de uma lista.
      *
      * Emite `null` quando o servidor confirma que a lista não existe (mais). Offline, um
