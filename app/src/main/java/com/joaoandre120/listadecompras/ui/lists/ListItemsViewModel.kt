@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.joaoandre120.listadecompras.data.model.CatalogProduct
 import com.joaoandre120.listadecompras.data.model.ShoppingItem
 import com.joaoandre120.listadecompras.data.model.ShoppingList
 import com.joaoandre120.listadecompras.data.repository.AuthRepository
@@ -90,6 +91,16 @@ class ListItemsViewModel(
                 showError(e)
             }
         }
+    }
+
+    /**
+     * Adiciona um produto do catálogo: o nome é copiado para o item e o `productId` é guardado.
+     *
+     * @param product produto escolhido nas sugestões.
+     */
+    fun addProduct(product: CatalogProduct) {
+        val id = uid ?: return
+        launchSafely { itemRepository.addItem(listId, product.name, id, product.id) }
     }
 
     /**

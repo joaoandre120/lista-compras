@@ -26,6 +26,8 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -43,6 +45,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
@@ -50,10 +53,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.joaoandre120.listadecompras.data.catalog.ProductCatalog
+import com.joaoandre120.listadecompras.data.model.CatalogProduct
 import com.joaoandre120.listadecompras.data.model.ShoppingItem
 import com.joaoandre120.listadecompras.data.model.ShoppingList
 import com.joaoandre120.listadecompras.data.util.IsoDate
 import com.joaoandre120.listadecompras.ui.theme.ListaDeComprasTheme
+import kotlin.collections.emptyList
 
 /**
  * Ponto de entrada da tela de itens de uma lista.
@@ -92,6 +98,11 @@ fun ListItemsScreen(
     }
     var showDatePicker by rememberSaveable(state.showDetailsDialog) { mutableStateOf(false) }
 
+    // Sugestões do catálogo para o texto digitado: função pura e rápida, calculada aqui.
+    val productSuggestions = remember(newItemName) {
+        ProductCatalog.search(newItemName).take(5)
+    }
+
     LaunchedEffect(state.message) {
         state.message?.let {
             snackbarHostState.showSnackbar(it)
@@ -114,6 +125,11 @@ fun ListItemsScreen(
         dateInput = dateInput,
         showDatePicker = showDatePicker,
         snackbarHostState = snackbarHostState,
+        productSuggestions = productSuggestions,
+        onAddProduct = {
+            viewModel.addProduct(it)
+            newItemName = ""
+        },
         onNewItemNameChange = { newItemName = it.take(100) },
         onAddItem = {
             viewModel.addItem(newItemName)
@@ -142,6 +158,8 @@ fun ListItemsScreen(
  * @param newItemName texto atual do campo "Adicionar item".
  * @param nameInput texto atual do campo do diálogo de edição.
  * @param snackbarHostState hospedeiro das mensagens pontuais.
+ * @param productSuggestions produtos do catálogo que combinam com [newItemName].
+ * @param onAddProduct chamado ao tocar em uma sugestão; recebe o produto escolhido.
  * @param onNewItemNameChange chamado a cada alteração do nome do novo item.
  * @param onAddItem chamado ao tocar em "Adicionar" ou na ação "Concluído" do teclado.
  * @param onCheckedChange chamado ao marcar/desmarcar; recebe o item e o novo valor.
@@ -158,6 +176,8 @@ fun ListItemsScreenContent(
     newItemName: String,
     nameInput: String,
     snackbarHostState: SnackbarHostState,
+    productSuggestions: List<CatalogProduct>,
+    onAddProduct: (CatalogProduct) -> Unit,
     onNewItemNameChange: (String) -> Unit,
     onAddItem: () -> Unit,
     onCheckedChange: (ShoppingItem, Boolean) -> Unit,
@@ -202,6 +222,22 @@ fun ListItemsScreenContent(
                     modifier = Modifier.weight(1f)
                 )
                 Button(onClick = onAddItem) { Text("Adicionar") }
+            }
+
+            if (newItemName.isNotBlank()) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SuggestionRow(
+                        title = "Adicionar “${newItemName.trim()}”",
+                        onClick = onAddItem
+                    )
+                    productSuggestions.forEach { product ->
+                        SuggestionRow(
+                            title = product.name,
+                            supportingText = product.category,
+                            onClick = { onAddProduct(product) }
+                        )
+                    }
+                }
             }
 
             when {
@@ -254,6 +290,30 @@ fun ListItemsScreenContent(
             )
         }
     }
+}
+
+/**
+ * Linha clicável de sugestão, usada sob o campo de adicionar item.
+ *
+ * @param title texto principal.
+ * @param onClick chamado ao tocar na sugestão.
+ * @param supportingText texto secundário opcional (ex.: categoria do produto).
+ */
+@Composable
+private fun SuggestionRow(
+    title: String,
+    onClick: () -> Unit,
+    supportingText: String? = null
+) {
+    val supporting: (@Composable () -> Unit)? =
+        if (supportingText != null) { { Text(supportingText) } } else null
+
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = supporting,
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier.clickable(onClick = onClick)
+    )
 }
 
 /**
@@ -474,6 +534,7 @@ private fun ListItemsScreenContentPreview() {
             showDatePicker = false,
             onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
             onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {},
+            productSuggestions = emptyList(), onAddProduct = {},
         )
     }
 }
@@ -500,6 +561,7 @@ private fun ListItemsScreenContentEmptyPreview() {
             showDatePicker = false,
             onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
             onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {},
+            productSuggestions = emptyList(), onAddProduct = {},
         )
     }
 }
@@ -530,6 +592,7 @@ private fun ListItemsScreenContentEditingPreview() {
             showDatePicker = false,
             onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
             onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {},
+            productSuggestions = emptyList(), onAddProduct = {},
         )
     }
 }
@@ -559,7 +622,33 @@ private fun ListItemsScreenContentDetailsPreview() {
             onEditItem = {}, onDeleteItem = {},
             onNameInputChange = {}, onSaveItemName = {}, onDismissEdit = {},
             onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
-            onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {}
+            onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {},
+            productSuggestions = emptyList(), onAddProduct = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Com sugestões")
+@Composable
+private fun ListItemsScreenContentSuggestionsPreview() {
+    ListaDeComprasTheme {
+        ListItemsScreenContent(
+            state = ListItemsUiState(items = previewItems, isLoading = false),
+            newItemName = "ar",
+            productSuggestions = ProductCatalog.search("ar").take(5),
+
+            nameInput = "",
+            storeInput = "Extra",
+            dateInput = "2026-10-30",
+            showDatePicker = false,
+            snackbarHostState = remember { SnackbarHostState() },
+            onNewItemNameChange = {}, onAddItem = {},
+            onCheckedChange = { _, _ -> },
+            onEditItem = {}, onDeleteItem = {},
+            onNameInputChange = {}, onSaveItemName = {}, onDismissEdit = {},
+            onEditDetails = {}, onStoreInputChange = {}, onDateInputChange = {},
+            onDatePickerVisibleChange = {}, onSaveDetails = {}, onDismissDetails = {},
+            onAddProduct = {},
         )
     }
 }
