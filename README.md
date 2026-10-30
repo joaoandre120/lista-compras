@@ -64,7 +64,7 @@ Padrões seguidos:
 ```
 users/{uid}                    displayName, createdAt
 groups/{groupId}               name, createdBy, memberIds, roles, joinCode, createdAt
-lists/{listId}                 name, groupId (null = privada), ownerId, createdAt
+lists/{listId}                 name, groupId (null = privada), ownerId, store, purchaseDate, createdAt
 lists/{listId}/items/{itemId}  name, productId, checked, addedBy, createdAt
 invites/{code}                 groupId, createdBy, expiresAt, maxUses, uses
 ```
