@@ -5,10 +5,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.google.firebase.firestore.FirebaseFirestoreException
 import com.joaoandre120.listadecompras.data.model.ShoppingList
 import com.joaoandre120.listadecompras.data.repository.AuthRepository
 import com.joaoandre120.listadecompras.data.repository.ListRepository
+import com.joaoandre120.listadecompras.ui.common.friendlyErrorMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -144,15 +144,8 @@ class ListsViewModel(
     }
 
     /** Converte exceções técnicas em texto próprio para o usuário. */
-    private fun friendlyMessage(e: Throwable): String = when {
-        e is FirebaseFirestoreException &&
-                e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED ->
-            "Sem permissão para acessar estas listas."
-        e is FirebaseFirestoreException &&
-                e.code == FirebaseFirestoreException.Code.UNAVAILABLE ->
-            "Sem conexão com o servidor."
-        else -> e.message ?: "Algo deu errado"
-    }
+    private fun friendlyMessage(e: Throwable): String =
+        friendlyErrorMessage(e, "Sem permissão para acessar estas listas.")
 
     companion object {
         /**

@@ -2,12 +2,11 @@ package com.joaoandre120.listadecompras.ui.groups
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.firestore.FirebaseFirestoreException
 import com.joaoandre120.listadecompras.data.model.Group
 import com.joaoandre120.listadecompras.data.repository.AuthRepository
 import com.joaoandre120.listadecompras.data.repository.GroupRepository
-import com.joaoandre120.listadecompras.data.repository.InviteException
 import com.joaoandre120.listadecompras.data.repository.UserRepository
+import com.joaoandre120.listadecompras.ui.common.friendlyErrorMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -139,25 +138,6 @@ class GroupsViewModel(
         }
     }
 
-    /** Obtém o uid e passa a observar os grupos do usuário. */
-    private fun observeGroups() {
-        viewModelScope.launch {
-            try {
-                val currentUid = authRepository.ensureSignedIn()
-                uid = currentUid
-                groupRepository.observeMyGroups(currentUid)
-                    .catch { e -> showError(e) }   // falha no listener não derruba o app
-                    .collect { list ->
-                        _state.update { it.copy(groups = list, isLoading = false) }
-                    }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                showError(e)
-            }
-        }
-    }
-
     /**
      * Cria um grupo em que o usuário é admin. A lista atualiza sozinha.
      *
@@ -263,14 +243,7 @@ class GroupsViewModel(
     }
 
     /** Converte exceções técnicas em texto próprio para o usuário. */
-    private fun friendlyMessage(e: Throwable): String = when {
-        e is InviteException -> e.message ?: "Convite inválido"
-        e is FirebaseFirestoreException &&
-                e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED ->
-            "Sem permissão. Se estava entrando num grupo, talvez você já seja membro."
-        e is FirebaseFirestoreException &&
-                e.code == FirebaseFirestoreException.Code.UNAVAILABLE ->
-            "Sem conexão com o servidor."
-        else -> e.message ?: "Algo deu errado"
-    }
+    private fun friendlyMessage(e: Throwable): String =
+        friendlyErrorMessage(e, "Sem permissão para acessar estas listas.")
+
 }
