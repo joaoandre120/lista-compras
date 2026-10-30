@@ -38,12 +38,16 @@ sealed interface ListsScope {
  * @property isLoading `true` até a primeira resposta da consulta.
  * @property isBusy `true` enquanto uma ação (criar lista) está em andamento.
  * @property message mensagem pontual para a tela mostrar; `null` quando não há.
+ * @property currentUid uid do usuário logado; `null` até o login terminar.
+ * @property listToDelete lista aguardando confirmação de exclusão; `null` sem diálogo.
  */
 data class ListsUiState(
     val lists: List<ShoppingList> = emptyList(),
     val isLoading: Boolean = true,
     val isBusy: Boolean = false,
-    val message: String? = null
+    val message: String? = null,
+    val currentUid: String? = null,
+    val listToDelete: ShoppingList? = null,
 )
 
 /**
@@ -75,6 +79,7 @@ class ListsViewModel(
             try {
                 val currentUid = authRepository.ensureSignedIn()
                 uid = currentUid
+                _state.update { it.copy(currentUid = currentUid) }
                 val source = when (listsScope) {
                     is ListsScope.Group -> listRepository.observeGroupLists(listsScope.groupId)
                     ListsScope.Private -> listRepository.observePrivateLists(currentUid)
@@ -114,6 +119,26 @@ class ListsViewModel(
             return
         }
         runAction { listRepository.createList(clean, id, targetGroupId) }
+    }
+
+    /**
+     * Pede confirmação para excluir [list].
+     *
+     * @param list lista a excluir.
+     */
+    fun askDeleteList(list: ShoppingList) = _state.update { it.copy(listToDelete = list) }
+
+    /** Fecha o diálogo de exclusão sem excluir. */
+    fun dismissDeleteDialog() = _state.update { it.copy(listToDelete = null) }
+
+    /** Exclui a lista confirmada, com todos os seus itens. A lista some sozinha da tela. */
+    fun confirmDeleteList() {
+        val list = _state.value.listToDelete ?: return
+        _state.update { it.copy(listToDelete = null) }
+        runAction {
+            listRepository.deleteListWithItems(list.id)
+            _state.update { it.copy(message = "Lista excluída") }
+        }
     }
 
     /** Chamado pela tela depois de exibir a mensagem, para ela não reaparecer. */

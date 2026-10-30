@@ -1,5 +1,6 @@
 package com.joaoandre120.listadecompras.data.repository
 
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -76,4 +77,38 @@ class ListRepository(
         }
         awaitClose { registration.remove() }
     }
+
+    /**
+     * Exclui a lista e todos os seus itens.
+     *
+     * Os itens saem em lotes pequenos e a lista, no último lote. Isso importa por dois
+     * motivos: (1) as regras de `items` precisam da lista ainda existente para
+     * autorizar cada exclusão; (2) as regras fazem `get()` (lista e grupo) a cada item,
+     * e um lote aceita no máximo 20 dessas chamadas, por isso [MAX_ITEMS_PER_DELETE_BATCH].
+     * Se algo falhar no meio, a lista continua existindo com menos itens e dá para repetir.
+     *
+     * Itens criados por outros membros que ainda não chegaram a este aparelho (offline)
+     * não são vistos aqui e ficam órfãos, inacessíveis pelas regras.
+     *
+     * @param listId id da lista a excluir (o usuário precisa ser o dono ou admin do grupo).
+     */
+    suspend fun deleteListWithItems(listId: String) {
+        val listRef = lists.document(listId)
+        val itemRefs = listRef.collection("items").get().await().documents.map { it.reference }
+        val chunks: List<List<DocumentReference>> =
+            itemRefs.chunked(MAX_ITEMS_PER_DELETE_BATCH).ifEmpty { listOf(emptyList()) }
+
+        chunks.forEachIndexed { index, chunk ->
+            val batch = firestore.batch()
+            chunk.forEach { batch.delete(it) }
+            if (index == chunks.lastIndex) batch.delete(listRef)   // a lista sai por último
+            batch.commit().await()
+        }
+    }
+
+    private companion object {
+        /** Margem de segurança: no pior caso (lista de grupo) são 2 `get()` por item, mais 2 da lista. */
+        const val MAX_ITEMS_PER_DELETE_BATCH = 8
+    }
+
 }

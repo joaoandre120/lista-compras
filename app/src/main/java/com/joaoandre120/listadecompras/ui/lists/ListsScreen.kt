@@ -9,14 +9,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -75,6 +81,9 @@ fun ListsScreen(
             newListName = ""
         },
         onListClick = onListClick,
+        onDeleteList = viewModel::askDeleteList,
+        onConfirmDelete = viewModel::confirmDeleteList,
+        onDismissDelete = viewModel::dismissDeleteDialog,
         modifier = modifier
     )
 }
@@ -98,6 +107,9 @@ fun ListsScreenContent(
     onNewListNameChange: (String) -> Unit,
     onCreateList: () -> Unit,
     onListClick: (String) -> Unit,
+    onDeleteList: (ShoppingList) -> Unit,
+    onConfirmDelete: () -> Unit,
+    onDismissDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -136,7 +148,9 @@ fun ListsScreenContent(
                     ) { list ->
                         ListCard(
                             list = list,
-                            onClick = { onListClick(list.id) }
+                            canDelete = list.ownerId == state.currentUid,
+                            onClick = { onListClick(list.id) },
+                            onDeleteClick = { onDeleteList(list) }
                         )
                     }
                 }
@@ -145,23 +159,74 @@ fun ListsScreenContent(
 
         SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
+
+    state.listToDelete?.let { list ->
+        DeleteListDialog(
+            listName = list.name,
+            onConfirm = onConfirmDelete,
+            onDismiss = onDismissDelete
+        )
+    }
 }
 
 /**
  * Cartão de uma lista na tela.
  *
  * @param list lista exibida.
+ * @param canDelete `true` só para o dono da lista; mostra a lixeira.
  * @param onClick chamado ao tocar no cartão.
+ * @param onDeleteClick chamado ao tocar na lixeira.
  */
 @Composable
-private fun ListCard(list: ShoppingList, onClick: () -> Unit) {
+private fun ListCard(
+    list: ShoppingList,
+    canDelete: Boolean,
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = list.name,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(16.dp)
-        )
+        Row(
+            modifier = Modifier.padding(start = 16.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = list.name,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 16.dp)
+            )
+            if (canDelete) {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Excluir ${list.name}")
+                }
+            }
+        }
     }
+}
+
+/**
+ * Diálogo de confirmação para excluir uma lista e seus itens.
+ *
+ * @param listName nome da lista, para o usuário saber o que está apagando.
+ * @param onConfirm chamado ao tocar em "Excluir".
+ * @param onDismiss chamado ao cancelar.
+ */
+@Composable
+private fun DeleteListDialog(
+    listName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Excluir lista?") },
+        text = {
+            Text("A lista \"$listName\" e todos os seus itens serão apagados para todos os membros. Essa ação não pode ser desfeita.")
+        },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Excluir") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
 }
 
 // ---------- Previews: consomem só o ListsScreenContent, com dados falsos ----------
@@ -181,7 +246,10 @@ private fun ListsScreenContentPreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onNewListNameChange = {},
             onCreateList = {},
-            onListClick = {}
+            onListClick = {},
+            onDeleteList = {},
+            onConfirmDelete = {},
+            onDismissDelete = {},
         )
     }
 }
@@ -196,7 +264,10 @@ private fun ListsScreenContentEmptyPreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onNewListNameChange = {},
             onCreateList = {},
-            onListClick = {}
+            onListClick = {},
+            onDeleteList = {},
+            onConfirmDelete = {},
+            onDismissDelete = {},
         )
     }
 }
