@@ -28,3 +28,7 @@ fun friendlyErrorMessage(error: Throwable, permissionDenied: String): String = w
         "Sem conexão com o servidor."
     else -> error.message ?: "Algo deu errado"
 }
+
+/** Aviso para ações tentadas antes de o login terminar ou depois de ele ter falhado. */
+const val NOT_SIGNED_IN_MESSAGE =
+    "Você ainda não está conectado. Verifique a internet e reabra o app."

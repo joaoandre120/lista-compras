@@ -12,6 +12,7 @@ import com.joaoandre120.listadecompras.data.repository.AuthRepository
 import com.joaoandre120.listadecompras.data.repository.ItemRepository
 import com.joaoandre120.listadecompras.data.repository.ListRepository
 import com.joaoandre120.listadecompras.data.util.IsoDate
+import com.joaoandre120.listadecompras.ui.common.NOT_SIGNED_IN_MESSAGE
 import com.joaoandre120.listadecompras.ui.common.friendlyErrorMessage
 import com.joaoandre120.listadecompras.ui.common.isPermissionDenied
 import kotlinx.coroutines.CancellationException
@@ -99,7 +100,7 @@ class ListItemsViewModel(
      * @param product produto escolhido nas sugestões.
      */
     fun addProduct(product: CatalogProduct) {
-        val id = uid ?: return
+        val id = uidOrWarn() ?: return
         launchSafely { itemRepository.addItem(listId, product.name, id, product.id) }
     }
 
@@ -109,7 +110,7 @@ class ListItemsViewModel(
      * @param name nome digitado; em branco ou acima de 100 caracteres gera um aviso.
      */
     fun addItem(name: String) {
-        val id = uid ?: return
+        val id = uidOrWarn() ?: return
         val clean = name.trim()
         if (!isValidName(clean)) return
         launchSafely { itemRepository.addItem(listId, clean, id) }
@@ -204,6 +205,17 @@ class ListItemsViewModel(
 
     /** Chamado pela tela depois de exibir a mensagem, para ela não reaparecer. */
     fun messageShown() = _state.update { it.copy(message = null) }
+
+    /**
+     * Devolve o uid do usuário logado ou, se o login ainda não terminou (ou falhou),
+     * avisa o usuário e devolve `null`. Substitui o `uid ?: return` silencioso.
+     *
+     * @return o uid atual, ou `null` depois de publicar o aviso em [ListItemsUiState.message].
+     */
+    private fun uidOrWarn(): String? = uid ?: run {
+        _state.update { it.copy(message = NOT_SIGNED_IN_MESSAGE) }
+        null
+    }
 
     /**
      * Valida o nome de um item; se inválido, publica o aviso correspondente.

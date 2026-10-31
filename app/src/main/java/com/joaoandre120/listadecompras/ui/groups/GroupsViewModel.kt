@@ -7,6 +7,7 @@ import com.joaoandre120.listadecompras.data.repository.AuthRepository
 import com.joaoandre120.listadecompras.data.repository.GroupException
 import com.joaoandre120.listadecompras.data.repository.GroupRepository
 import com.joaoandre120.listadecompras.data.repository.UserRepository
+import com.joaoandre120.listadecompras.ui.common.NOT_SIGNED_IN_MESSAGE
 import com.joaoandre120.listadecompras.ui.common.friendlyErrorMessage
 import com.joaoandre120.listadecompras.ui.common.isPermissionDenied
 import kotlinx.coroutines.CancellationException
@@ -148,7 +149,7 @@ class GroupsViewModel(
      * @param name nome digitado; em branco gera uma mensagem de aviso.
      */
     fun createGroup(name: String) {
-        val id = uid ?: return
+        val id = uidOrWarn() ?: return
         if (name.isBlank()) {
             _state.update { it.copy(message = "Dê um nome ao grupo") }
             return
@@ -171,7 +172,7 @@ class GroupsViewModel(
      * `array-contains` deixa de casar com o documento).
      */
     fun confirmLeaveGroup() {
-        val id = uid ?: return
+        val id = uidOrWarn() ?: return
         val group = _state.value.groupToLeave ?: return
         _state.update { it.copy(groupToLeave = null) }
         runAction {
@@ -194,7 +195,7 @@ class GroupsViewModel(
      * @param name nome digitado; em branco ou acima de 40 caracteres gera aviso.
      */
     fun saveDisplayName(name: String) {
-        val id = uid ?: return
+        val id = uidOrWarn() ?: return
         val clean = name.trim()
         if (clean.isEmpty()) {
             _state.update { it.copy(message = "Digite seu nome") }
@@ -224,7 +225,7 @@ class GroupsViewModel(
      * @param group grupo que receberá quem usar o convite.
      */
     fun createInvite(group: Group) {
-        val id = uid ?: return
+        val id = uidOrWarn() ?: return
         runAction {
             val code = groupRepository.createInvite(group.id, id)
             _state.update { it.copy(invite = InviteInfo(group.name, code)) }
@@ -237,7 +238,7 @@ class GroupsViewModel(
      * @param code código digitado; em branco gera uma mensagem de aviso.
      */
     fun joinWithCode(code: String) {
-        val id = uid ?: return
+        val id = uidOrWarn() ?: return
         if (code.isBlank()) {
             _state.update { it.copy(message = "Digite o código do convite") }
             return
@@ -250,6 +251,17 @@ class GroupsViewModel(
 
     /** Chamado pela tela depois de exibir a mensagem, para ela não reaparecer. */
     fun messageShown() = _state.update { it.copy(message = null) }
+
+    /**
+     * Devolve o uid do usuário logado ou, se o login ainda não terminou (ou falhou),
+     * avisa o usuário e devolve `null`. Substitui o `uid ?: return` silencioso.
+     *
+     * @return o uid atual, ou `null` depois de publicar o aviso em [GroupsUiState.message].
+     */
+    private fun uidOrWarn(): String? = uid ?: run {
+        _state.update { it.copy(message = NOT_SIGNED_IN_MESSAGE) }
+        null
+    }
 
     /** Chamado pela tela ao fechar o diálogo do convite. */
     fun inviteDismissed() = _state.update { it.copy(invite = null) }

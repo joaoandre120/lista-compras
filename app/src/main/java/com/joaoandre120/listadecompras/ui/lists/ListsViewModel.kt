@@ -8,7 +8,9 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.joaoandre120.listadecompras.data.model.ShoppingList
 import com.joaoandre120.listadecompras.data.repository.AuthRepository
 import com.joaoandre120.listadecompras.data.repository.ListRepository
+import com.joaoandre120.listadecompras.ui.common.NOT_SIGNED_IN_MESSAGE
 import com.joaoandre120.listadecompras.ui.common.friendlyErrorMessage
+import com.joaoandre120.listadecompras.ui.groups.GroupsUiState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -108,7 +110,7 @@ class ListsViewModel(
      * @param name nome digitado; em branco ou acima de 60 caracteres gera um aviso.
      */
     fun createList(name: String) {
-        val id = uid ?: return
+        val id = uidOrWarn() ?: return
         val clean = name.trim()
         if (clean.isEmpty()) {
             _state.update { it.copy(message = "Dê um nome à lista") }
@@ -143,6 +145,17 @@ class ListsViewModel(
 
     /** Chamado pela tela depois de exibir a mensagem, para ela não reaparecer. */
     fun messageShown() = _state.update { it.copy(message = null) }
+
+    /**
+     * Devolve o uid do usuário logado ou, se o login ainda não terminou (ou falhou),
+     * avisa o usuário e devolve `null`. Substitui o `uid ?: return` silencioso.
+     *
+     * @return o uid atual, ou `null` depois de publicar o aviso em [ListsUiState.message].
+     */
+    private fun uidOrWarn(): String? = uid ?: run {
+        _state.update { it.copy(message = NOT_SIGNED_IN_MESSAGE) }
+        null
+    }
 
     /**
      * Executa uma ação marcando [ListsUiState.isBusy] e traduzindo falhas em mensagens.
