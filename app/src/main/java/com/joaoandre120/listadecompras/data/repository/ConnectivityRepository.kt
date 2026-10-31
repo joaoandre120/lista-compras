@@ -56,5 +56,5 @@ class ConnectivityRepository(context: Context) {
     private fun NetworkCapabilities.hasInternet(): Boolean =
         hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                 hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-    
+
 }

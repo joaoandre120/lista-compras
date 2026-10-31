@@ -9,4 +9,7 @@
     <string name="nav_list_items_title">Itens</string>
     <string name="nav_back">Voltar</string>
 
+    <string name="nav_online">Conectado</string>
+    <string name="nav_offline">Sem internet</string>
+
 </resources>

@@ -3,8 +3,11 @@ package com.joaoandre120.listadecompras.ui
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.joaoandre120.listadecompras.ui.navigation.AppBottomBar
 import com.joaoandre120.listadecompras.ui.navigation.AppNavDisplay
 import com.joaoandre120.listadecompras.ui.navigation.AppTopBar
@@ -25,10 +28,17 @@ fun ListaDeComprasApp() {
     )
     val navigator = remember(navigationState) { Navigator(navigationState) }
 
+    val appViewModel: AppViewModel = viewModel()
+    val isOnline by appViewModel.isOnline.collectAsStateWithLifecycle()
+
     Scaffold(
         topBar = {
             navigationState.topBarState?.let { state ->
-                AppTopBar(state = state, onBackClick = { navigator.goBack() })
+                AppTopBar(
+                    state = state,
+                    isOnline = isOnline,
+                    onBackClick = { navigator.goBack() },
+                )
             }
         },
         bottomBar = {

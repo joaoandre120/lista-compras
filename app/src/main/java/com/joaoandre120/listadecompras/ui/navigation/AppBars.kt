@@ -1,10 +1,14 @@
 package com.joaoandre120.listadecompras.ui.navigation
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
@@ -12,12 +16,16 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.joaoandre120.listadecompras.R
+import com.joaoandre120.listadecompras.ui.theme.ListaDeComprasTheme
 
 /**
  * Barra superior stateless, descrita por um [TopBarState].
  *
  * @param state Título e visibilidade do botão de voltar.
+ * @param isOnline `true` com internet; define o ícone no canto direito.
  * @param onBackClick Chamado ao tocar em voltar.
  * @param modifier Modificador aplicado à barra.
  */
@@ -25,6 +33,7 @@ import com.joaoandre120.listadecompras.R
 @Composable
 fun AppTopBar(
     state: TopBarState,
+    isOnline: Boolean,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -39,6 +48,20 @@ fun AppTopBar(
                     )
                 }
             }
+        },
+        actions = {
+            Icon(
+                imageVector = if (isOnline) Icons.Filled.Cloud else Icons.Filled.CloudOff,
+                contentDescription = stringResource(
+                    if (isOnline) R.string.nav_online else R.string.nav_offline
+                ),
+                tint = if (isOnline) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
+                modifier = Modifier.padding(end = 16.dp),
+            )
         },
         modifier = modifier,
     )
@@ -69,5 +92,55 @@ fun AppBottomBar(
                 label = { Text(stringResource(item.labelRes)) },
             )
         }
+    }
+}
+
+// ---------- Previews: consomem só os composables stateless, com dados fixos ----------
+
+@Preview(showBackground = true, name = "TopBar: online")
+@Composable
+private fun AppTopBarOnlinePreview() {
+    ListaDeComprasTheme {
+        AppTopBar(
+            state = Route.Groups.topBarState()!!,
+            isOnline = true,
+            onBackClick = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "TopBar: offline com voltar")
+@Composable
+private fun AppTopBarOfflinePreview() {
+    ListaDeComprasTheme {
+        AppTopBar(
+            state = Route.GroupLists(groupId = "g").topBarState()!!,
+            isOnline = false,
+            onBackClick = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "BottomBar: aba Grupos")
+@Composable
+private fun AppBottomBarGroupsPreview() {
+    ListaDeComprasTheme {
+        AppBottomBar(
+            routes = TopLevelRoutes.filterIsInstance<Route>(),
+            isSelected = { it == Route.Groups },
+            onItemClick = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "BottomBar: aba Privadas")
+@Composable
+private fun AppBottomBarPrivatePreview() {
+    ListaDeComprasTheme {
+        AppBottomBar(
+            routes = TopLevelRoutes.filterIsInstance<Route>(),
+            isSelected = { it == Route.PrivateLists },
+            onItemClick = {},
+        )
     }
 }
