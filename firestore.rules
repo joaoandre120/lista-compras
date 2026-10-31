@@ -120,14 +120,24 @@ service cloud.firestore {
             && validText(request.resource.data.name, 60);
       }
 
-      // Membro se remove de memberIds e roles, na mesma operação, e mais nada.
+      // Membro se remove de memberIds e roles, na mesma operação. Um admin pode,
+      // além disso, promover UM outro membro (sucessor). Invariante final: grupo
+      // vazio ou com pelo menos um admin.
       function leavesGroup() {
         let uid = request.auth.uid;
+        let newData = request.resource.data;
+        let rolesDiff = newData.roles.diff(resource.data.roles).affectedKeys();
+        let plainLeave = rolesDiff == [uid].toSet();
+        let leaveWithSuccessor = resource.data.roles[uid] == 'admin'
+            && rolesDiff.size() == 2
+            && rolesDiff.hasAll([uid])
+            && newData.roles.keys().toSet() == newData.memberIds.toSet()
+            && newData.roles.values().toSet().hasOnly(['admin', 'member']);
         return changedKeys().hasOnly(['memberIds', 'roles'])
-            && request.resource.data.memberIds == resource.data.memberIds.removeAll([uid])
-            && !(uid in request.resource.data.roles)
-            && resource.data.roles.diff(request.resource.data.roles)
-                 .affectedKeys() == [uid].toSet();
+            && newData.memberIds == resource.data.memberIds.removeAll([uid])
+            && !(uid in newData.roles)
+            && (plainLeave || leaveWithSuccessor)
+            && (newData.memberIds.size() == 0 || 'admin' in newData.roles.values());
       }
     }
 
