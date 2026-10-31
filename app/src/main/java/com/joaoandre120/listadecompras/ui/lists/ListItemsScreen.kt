@@ -239,12 +239,14 @@ fun ListItemsScreenContent(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SuggestionRow(
                         title = "Adicionar “${newItemName.trim()}”",
+                        supportingText = if (isNameInList(newItemName, state.items)) "Já está na lista" else null,
                         onClick = onAddItem
                     )
                     productSuggestions.forEach { product ->
+                        val inList = isProductInList(product, state.items)
                         SuggestionRow(
                             title = product.name,
-                            supportingText = product.category,
+                            supportingText = if (inList) "${product.category} · já está na lista" else product.category,
                             onClick = { onAddProduct(product) }
                         )
                     }
@@ -535,7 +537,8 @@ private fun PurchaseDatePickerDialog(
 private val previewItems = listOf(
     ShoppingItem(id = "1", name = "Arroz", addedBy = "a"),
     ShoppingItem(id = "2", name = "Leite", addedBy = "b"),
-    ShoppingItem(id = "3", name = "Feijão", checked = true, addedBy = "a")
+    ShoppingItem(id = "3", name = "Feijão", checked = true, addedBy = "a"),
+    ShoppingItem(id = "", name = "laranja", checked = false, addedBy = "a"),
 )
 
 @Preview(showBackground = true, name = "Com itens")
