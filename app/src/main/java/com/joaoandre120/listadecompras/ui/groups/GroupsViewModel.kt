@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joaoandre120.listadecompras.data.model.Group
 import com.joaoandre120.listadecompras.data.repository.AuthRepository
+import com.joaoandre120.listadecompras.data.repository.GroupException
 import com.joaoandre120.listadecompras.data.repository.GroupRepository
 import com.joaoandre120.listadecompras.data.repository.UserRepository
 import com.joaoandre120.listadecompras.ui.common.friendlyErrorMessage
+import com.joaoandre120.listadecompras.ui.common.isPermissionDenied
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +37,7 @@ data class InviteInfo(val groupName: String, val code: String)
  * @property displayName nome do usuário logado; vazio enquanto não definido.
  * @property showNameDialog `true` quando a tela deve pedir ou editar o nome.
  * @property memberNames mapa uid -> nome dos membros já conhecidos.
+ * @property groupToLeave grupo aguardando confirmação de saída; `null` sem diálogo.
  */
 data class GroupsUiState(
     val groups: List<Group> = emptyList(),
@@ -45,7 +48,8 @@ data class GroupsUiState(
     val currentUid: String? = null,
     val displayName: String = "",
     val showNameDialog: Boolean = false,
-    val memberNames: Map<String, String> = emptyMap()
+    val memberNames: Map<String, String> = emptyMap(),
+    val groupToLeave: Group? = null,
 )
 
 /**
@@ -150,6 +154,38 @@ class GroupsViewModel(
             return
         }
         runAction { groupRepository.createGroup(name, id) }
+    }
+
+    /**
+     * Pede confirmação para sair de [group].
+     *
+     * @param group grupo que o usuário quer deixar.
+     */
+    fun askLeaveGroup(group: Group) = _state.update { it.copy(groupToLeave = group) }
+
+    /** Fecha o diálogo de saída sem sair. */
+    fun dismissLeaveDialog() = _state.update { it.copy(groupToLeave = null) }
+
+    /**
+     * Sai do grupo confirmado. A lista de grupos atualiza sozinha (o listener
+     * `array-contains` deixa de casar com o documento).
+     */
+    fun confirmLeaveGroup() {
+        val id = uid ?: return
+        val group = _state.value.groupToLeave ?: return
+        _state.update { it.copy(groupToLeave = null) }
+        runAction {
+            try {
+                groupRepository.leaveGroup(group.id, id)
+            } catch (e: Exception) {
+                // Recusa das regras aqui é quase sempre corrida entre admins.
+                if (isPermissionDenied(e)) {
+                    throw GroupException("Não foi possível sair agora. Tente novamente.")
+                }
+                throw e   // inclui CancellationException: runAction a relança
+            }
+            _state.update { it.copy(message = "Você saiu do grupo \"${group.name}\"") }
+        }
     }
 
     /**

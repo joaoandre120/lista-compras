@@ -11,10 +11,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
@@ -96,6 +100,9 @@ fun GroupsScreen(
         onSaveDisplayName = { viewModel.saveDisplayName(nameInput) },
         onDismissNameDialog = viewModel::dismissNameDialog,
         onGroupClick = onGroupClick,
+        onLeaveClick = viewModel::askLeaveGroup,
+        onConfirmLeave = viewModel::confirmLeaveGroup,
+        onDismissLeave = viewModel::dismissLeaveDialog,
         modifier = modifier
     )
 }
@@ -141,6 +148,9 @@ fun GroupsScreenContent(
     onSaveDisplayName: () -> Unit,
     onDismissNameDialog: () -> Unit,
     onGroupClick: (String) -> Unit,
+    onLeaveClick: (Group) -> Unit,
+    onConfirmLeave: () -> Unit,
+    onDismissLeave: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -201,6 +211,7 @@ fun GroupsScreenContent(
                             inviteEnabled = !state.isBusy,
                             onInviteClick = { onInviteClick(group) },
                             onClick = { onGroupClick(group.id) },
+                            onLeaveClick = { onLeaveClick(group) },
                         )
                     }
                 }
@@ -228,6 +239,16 @@ fun GroupsScreenContent(
             onDismiss = onDismissNameDialog
         )
     }
+
+    state.groupToLeave?.let { group ->
+        LeaveGroupDialog(
+            groupName = group.name,
+            warning = leaveWarning(group, state),
+            onConfirm = onConfirmLeave,
+            onDismiss = onDismissLeave
+        )
+    }
+
 }
 
 /**
@@ -245,6 +266,7 @@ private fun GroupCard(
     inviteEnabled: Boolean,
     onInviteClick: () -> Unit,
     onClick: () -> Unit,
+    onLeaveClick: () -> Unit,
 ) {
     Card(
         onClick = onClick,
@@ -263,7 +285,62 @@ private fun GroupCard(
                 Text(membersText, style = MaterialTheme.typography.bodySmall)
             }
             TextButton(enabled = inviteEnabled, onClick = onInviteClick) { Text("Convidar") }
+            IconButton(enabled = inviteEnabled, onClick = onLeaveClick) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ExitToApp,
+                    contentDescription = "Sair do grupo ${group.name}"
+                )
+            }
         }
+    }
+}
+
+/**
+ * Diálogo de confirmação para sair de um grupo.
+ *
+ * @param groupName nome do grupo, para o usuário saber de qual está saindo.
+ * @param warning consequência da saída neste caso (ver [leaveWarning]).
+ * @param onConfirm chamado ao tocar em "Sair".
+ * @param onDismiss chamado ao cancelar.
+ */
+@Composable
+private fun LeaveGroupDialog(
+    groupName: String,
+    warning: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sair de \"$groupName\"?") },
+        text = { Text(warning) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Sair") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
+}
+
+/**
+ * Explica o que acontece ao sair de [group], conforme o papel do usuário.
+ * Espelha a lógica do repositório (sucessor = primeiro outro membro), só para informar.
+ *
+ * @param group grupo que será deixado.
+ * @param state estado com o uid logado e os nomes conhecidos.
+ * @return texto de aviso para o diálogo.
+ */
+private fun leaveWarning(group: Group, state: GroupsUiState): String {
+    val uid = state.currentUid
+    val others = group.memberIds.filter { it != uid }
+    val iAmAdmin = uid != null && group.roles[uid] == "admin"
+    val otherAdminExists = others.any { group.roles[it] == "admin" }
+    return when {
+        others.isEmpty() ->
+            "Você é o único membro. Ao sair, ninguém mais terá acesso ao grupo nem às listas dele."
+        iAmAdmin && !otherAdminExists -> {
+            val name = state.memberNames[others.first()] ?: "Outro membro"
+            "$name será promovido(a) a administrador(a). Você perde o acesso ao grupo e a todas as listas dele."
+        }
+        else ->
+            "Você perde o acesso ao grupo e a todas as listas dele. Elas continuam para os outros membros."
     }
 }
 
@@ -394,6 +471,9 @@ private fun GroupsScreenContentPreview() {
             onSaveDisplayName = {},
             onDismissNameDialog = {},
             onGroupClick = {},
+            onLeaveClick = {},
+            onConfirmLeave = {},
+            onDismissLeave = {},
         )
     }
 }
@@ -420,6 +500,9 @@ private fun GroupsScreenContentEmptyPreview() {
             onSaveDisplayName = {},
             onDismissNameDialog = {},
             onGroupClick = {},
+            onLeaveClick = {},
+            onConfirmLeave = {},
+            onDismissLeave = {},
         )
     }
 }
@@ -450,6 +533,9 @@ private fun GroupsScreenContentInvitePreview() {
             onSaveDisplayName = {},
             onDismissNameDialog = {},
             onGroupClick = {},
+            onLeaveClick = {},
+            onConfirmLeave = {},
+            onDismissLeave = {},
         )
     }
 }
@@ -476,6 +562,34 @@ private fun GroupsScreenContentNameDialogPreview() {
             onSaveDisplayName = {},
             onDismissNameDialog = {},
             onGroupClick = {},
+            onLeaveClick = {},
+            onConfirmLeave = {},
+            onDismissLeave = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Confirmando saída")
+@Composable
+private fun GroupsScreenContentLeavePreview() {
+    ListaDeComprasTheme {
+        GroupsScreenContent(
+            state = GroupsUiState(
+                groups = previewGroups.map { it.copy(roles = mapOf("a" to "admin", "b" to "member", "c" to "member")) },
+                isLoading = false,
+                currentUid = "a",
+                memberNames = mapOf("a" to "João", "b" to "Maria", "c" to "Ana"),
+                groupToLeave = previewGroups.first().copy(roles = mapOf("a" to "admin", "b" to "member", "c" to "member"))
+            ),
+            newGroupName = "", joinCode = "",
+            snackbarHostState = remember { SnackbarHostState() },
+            onNewGroupNameChange = {}, onJoinCodeChange = {},
+            onCreateGroup = {}, onJoinWithCode = {},
+            onInviteClick = {}, onShareInvite = {}, onDismissInvite = {},
+            nameInput = "", onNameInputChange = {}, onEditName = {},
+            onSaveDisplayName = {}, onDismissNameDialog = {},
+            onGroupClick = {},
+            onLeaveClick = {}, onConfirmLeave = {}, onDismissLeave = {},
         )
     }
 }
