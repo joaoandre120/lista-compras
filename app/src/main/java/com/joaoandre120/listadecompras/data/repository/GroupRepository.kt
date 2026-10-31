@@ -128,7 +128,46 @@ class GroupRepository(
         batch.commit().await()
         return invite.groupId
     }
+
+    /**
+     * Remove [uid] do grupo, promovendo um sucessor se ele for o último admin.
+     *
+     * Usa transação para ler o grupo atual no servidor antes de decidir (um snapshot
+     * antigo poderia achar que ainda existe outro admin). `memberIds` e `roles` mudam
+     * na mesma gravação, como as regras exigem. Se [uid] for admin único e houver
+     * outros membros, o mais antigo (primeiro de `memberIds`) vira admin.
+     * Se for o único membro, o grupo fica vazio (órfão).
+     *
+     * @param groupId id do grupo.
+     * @param uid uid de quem sai (precisa ser o usuário logado).
+     * @throws FirebaseFirestoreException `UNAVAILABLE` sem rede; `PERMISSION_DENIED`
+     * se as regras recusarem (ex.: corrida entre dois admins saindo).
+     */
+    suspend fun leaveGroup(groupId: String, uid: String) {
+        val ref = groups.document(groupId)
+        firestore.runTransaction { tx ->
+            val group = tx.get(ref).toObject(Group::class.java)
+            if (group == null || uid !in group.memberIds) return@runTransaction Unit
+
+            val updates = mutableMapOf<String, Any>(
+                "memberIds" to FieldValue.arrayRemove(uid),
+                "roles.$uid" to FieldValue.delete()
+            )
+            val others = group.memberIds - uid
+            val iAmAdmin = group.roles[uid] == "admin"
+            val otherAdminExists = others.any { group.roles[it] == "admin" }
+            if (iAmAdmin && others.isNotEmpty() && !otherAdminExists) {
+                updates["roles.${others.first()}"] = "admin"
+            }
+            tx.update(ref, updates)
+            Unit
+        }.await()
+    }
+
 }
 
 /** Erro de negócio ao usar um convite; a mensagem já é própria para exibir. */
 class InviteException(message: String) : Exception(message)
+
+/** Erro de negócio em operações de grupo; a mensagem já é própria para exibir. */
+class GroupException(message: String) : Exception(message)
