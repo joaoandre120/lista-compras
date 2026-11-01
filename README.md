@@ -2,7 +2,7 @@
 
 App Android de lista de compras **compartilhada** entre família e amigos, com atualização em tempo real e funcionamento offline.
 
-> Projeto de estudo em desenvolvimento: o objetivo é aprender Android moderno e arquitetura de software (MVVM) construindo um app real. Algumas telas ainda são provisórias.
+> Projeto de estudo em desenvolvimento: o objetivo é aprender Android moderno e arquitetura de software (MVVM) construindo um app real, e também praticar o **Git** no dia a dia (commits atômicos, Conventional Commits, dois remotos e trabalho em dois computadores). Algumas telas ainda são provisórias.
 
 ## Funcionalidades
 
@@ -15,13 +15,28 @@ App Android de lista de compras **compartilhada** entre família e amigos, com a
 - Entrada em grupo pelo código, em operação atômica (sem Cloud Functions).
 - Listas de cada grupo e listas privadas, em tempo real.
 - Navegação com abas (Grupos / Privadas) e telas internas, usando Navigation 3.
-
-**Em desenvolvimento / planejado**
-
 - Tela de itens da lista (marcar, editar, remover) em tempo real.
 - Catálogo de produtos embutido, com sugestões ao digitar (ignora acentos e maiúsculas).
-- Excluir lista, sair do grupo na interface e tratamento do "último admin".
-- Convite por link (Deep Links), preços e histórico de compras, backup.
+- Supermercado e data da compra em cada lista, com sugestões de mercados (catálogo embutido) e seletor de data. Ao marcar o primeiro item, a data é preenchida com a de hoje se ainda estiver vazia.
+- Indicador de conexão (online/offline) na barra superior.
+- Excluir lista.
+
+**Implementado, ainda não testado**
+
+- Sair do grupo: o código já existe (diálogo de confirmação, transação no repositório e regras de segurança), mas o caso do **último admin** ainda não foi validado. A intenção é que, se o único admin sair e houver outros membros, o membro mais antigo seja promovido a admin automaticamente; se for o único membro, o grupo fica vazio. Falta testar esse fluxo, inclusive a corrida entre dois admins saindo ao mesmo tempo.
+- Entrada em grupo com um segundo usuário e o limite de usos do convite (`maxUses`).
+
+**Próximos passos**
+
+- Preço, quantidade, marca e tamanho nos itens (campos opcionais no diálogo de edição) e total da lista.
+- "Finalizar compra", que grava um retrato da compra no histórico.
+- Tela de histórico de preços, comparando o mesmo produto entre mercados e ao longo do tempo.
+
+**Ideias para depois**
+
+- Convite por link (Deep Links), além do código.
+- Vincular a conta anônima ao login do Google, para não perder o acesso ao reinstalar o app.
+- Backup dos dados.
 
 ## Stack
 
@@ -80,15 +95,15 @@ As regras de segurança estão em [`firestore.rules`](firestore.rules). Lembre q
 
 ## Como rodar (crie o seu próprio Firebase)
 
-O arquivo `app/google-services.json` **não** está no repositório. Para rodar o app, você usa o seu próprio projeto Firebase:
+O arquivo `google-services.json` **não** está no repositório. Para rodar o app, você usa o seu próprio projeto Firebase:
 
 1. Clone o repositório:
    ```bash
    git clone https://github.com/joaoandre120/lista-compras.git
    ```
 2. No [console do Firebase](https://console.firebase.google.com), crie um projeto (plano Spark, Analytics é opcional).
-3. Registre um app Android com o `applicationId` **`com.joaoandre120.listadecompras`** (ou troque o `applicationId` e o `namespace` em `build.gradle.kts` pelo seu).
-4. Baixe o `app/google-services.json` e coloque em ``, no mesmo nível do `build.gradle.kts` do módulo.
+3. Registre um app Android com o `applicationId` **`com.joaoandre120.listadecompras`** (ou troque o `applicationId` e o `namespace` em `app/build.gradle.kts` pelo seu).
+4. Baixe o `google-services.json` e coloque em `app/`, no mesmo nível do `build.gradle.kts` do módulo.
 5. Em **Authentication**, ative o provedor **Anônimo**.
 6. Em **Firestore Database**, crie o banco (a região não pode ser alterada depois).
 7. Publique as regras: copie o conteúdo de `firestore.rules` para a aba **Regras** do Firestore (ou use a Firebase CLI: `firebase deploy --only firestore:rules`).
@@ -102,9 +117,19 @@ O plano Spark oferece cota diária de leituras e gravações (50 mil e 20 mil, r
 
 ## Contribuindo / fluxo de trabalho
 
-- Commits pequenos e atômicos, no padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/): `feat:`, `fix:`, `docs:`, `style:`, `chore:`, `test:`, `refactor:`.
+Além do Android, este projeto é um laboratório para aprender Git. Por isso o histórico segue algumas práticas de propósito:
+
+- Commits pequenos e atômicos (um commit por tarefa resolvida), no padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/): `feat:`, `fix:`, `docs:`, `style:`, `chore:`, `refactor:`, `test:`.
+- Dois remotos: o projeto é espelhado no GitHub (`origin`) e no Codeberg (`codeberg`), e cada alteração é enviada aos dois:
+  ```bash
+  git pull origin main
+  git add .
+  git commit -m "feat: descrição curta"
+  git push origin main
+  git push codeberg main
+  ```
+- Desenvolvimento em dois computadores (casa e trabalho), cada um com a sua chave SSH e a sua configuração local de nome e e-mail. Por isso a regra é: `git pull` antes de começar e `push` ao terminar.
 - KDoc em tudo que for criado ou alterado.
-- O projeto é espelhado no GitHub e no Codeberg.
 
 ## Licença
 
