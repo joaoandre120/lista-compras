@@ -180,9 +180,17 @@ object ProductCatalog {
     fun search(query: String): List<CatalogProduct> {
         val q = query.normalizedForSearch()
         if (q.isBlank()) return emptyList()
+//        return products
+//            .filter { it.name.normalizedForSearch().contains(q) }
+//            .sortedBy { if (it.name.normalizedForSearch().startsWith(q)) 0 else 1 }
         return products
             .filter { it.name.normalizedForSearch().contains(q) }
-            .sortedBy { if (it.name.normalizedForSearch().startsWith(q)) 0 else 1 }
+            .sortedWith(
+                compareBy<CatalogProduct>(
+                    { if (it.name.normalizedForSearch().startsWith(q)) 0 else 1 },
+                    { it.name.length }
+                )
+            )
     }
 
 }
