@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -46,6 +48,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -64,6 +67,8 @@ import com.joaoandre120.listadecompras.data.model.ShoppingItem
 import com.joaoandre120.listadecompras.data.model.ShoppingList
 import com.joaoandre120.listadecompras.data.util.IsoDate
 import com.joaoandre120.listadecompras.ui.theme.ListaDeComprasTheme
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlin.collections.emptyList
 
 /**
@@ -108,7 +113,8 @@ fun ListItemsScreen(
 
     // Sugestões do catálogo para o texto digitado: função pura e rápida, calculada aqui.
     val productSuggestions = remember(newItemName) {
-        ProductCatalog.search(newItemName).take(5)
+        ProductCatalog.search(newItemName)
+            //.take(5)
     }
 
 
@@ -246,6 +252,15 @@ fun ListItemsScreenContent(
             }
 
             if (newItemName.isNotBlank()) {
+                SuggestionsCard(
+                    query = newItemName,
+                    products = productSuggestions,
+                    items = state.items,
+                    onAddTyped = onAddItem,
+                    onAddProduct = onAddProduct
+                )
+            }
+            if (newItemName.isNotBlank() && false) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SuggestionRow(
                         title = "Adicionar “${newItemName.trim()}”",
@@ -338,6 +353,70 @@ private fun SuggestionRow(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier.clickable(onClick = onClick)
     )
+}
+
+/** Quantos produtos aparecem por "página" nas sugestões. */
+private const val SUGGESTIONS_PAGE_SIZE = 10
+
+/**
+ * Cartão de sugestões: a linha "Adicionar “texto”" fica fixa no topo e os produtos
+ * do catálogo rolam abaixo dela, em páginas de [SUGGESTIONS_PAGE_SIZE].
+ *
+ * A paginação é só de exibição: [products] já traz todos os resultados (a busca é
+ * em memória). O contador de itens visíveis é estado de interface e reinicia
+ * quando o texto digitado muda.
+ *
+ * @param query texto digitado no campo (usado para o título e para reiniciar a paginação).
+ * @param products todos os produtos do catálogo que combinam com [query].
+ * @param items itens atuais da lista, para o aviso "já está na lista".
+ * @param onAddTyped chamado ao tocar na linha fixa "Adicionar “texto”".
+ * @param onAddProduct chamado ao tocar em um produto sugerido.
+ * @param modifier modificador do cartão.
+ */
+@Composable
+private fun SuggestionsCard(
+    query: String,
+    products: List<CatalogProduct>,
+    items: List<ShoppingItem>,
+    onAddTyped: () -> Unit,
+    onAddProduct: (CatalogProduct) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Reinicia a "página" e a rolagem sempre que o texto muda.
+    var visibleCount by remember(query) { mutableStateOf(SUGGESTIONS_PAGE_SIZE) }
+    val listState = rememberLazyListState()
+    val total = products.size
+
+    // Quando o último item visível chega perto do fim, libera mais uma página.
+    LaunchedEffect(listState, query, total) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
+            .distinctUntilChanged()
+            .filter { last -> last >= visibleCount - 2 && visibleCount < total }
+            .collect { visibleCount = (visibleCount + SUGGESTIONS_PAGE_SIZE).coerceAtMost(total) }
+    }
+
+    Card(modifier = modifier.fillMaxWidth()) {
+        // Fixa: fica fora do LazyColumn, então não rola.
+        SuggestionRow(
+            title = "Adicionar “${query.trim()}”",
+            supportingText = if (isNameInList(query, items)) "Já está na lista" else null,
+            onClick = onAddTyped
+        )
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.heightIn(max = 240.dp)   // limite obrigatório
+        ) {
+            items(products.take(visibleCount), key = { it.id }) { product ->
+                val inList = isProductInList(product, items)
+                SuggestionRow(
+                    title = product.name,
+                    supportingText = if (inList) "${product.category} · já está na lista"
+                    else product.category,
+                    onClick = { onAddProduct(product) }
+                )
+            }
+        }
+    }
 }
 
 /**
