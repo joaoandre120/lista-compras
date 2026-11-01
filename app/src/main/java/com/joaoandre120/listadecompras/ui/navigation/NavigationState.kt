@@ -55,6 +55,8 @@ fun rememberNavigationState(
  * State Holder da navegação: aba atual e uma pilha por aba.
  * Só deve ser modificado pelo [Navigator].
  *
+ * @param topLevelRoute Estado mutável que guarda a aba atual; é exposto
+ * pela propriedade [topLevelRoute].
  * @property startRoute Rota inicial (aba por onde o app é encerrado).
  * @property backStacks Pilha de cada rota de nível superior.
  */

@@ -164,7 +164,7 @@ fun ListItemsScreen(
 /**
  * Conteúdo da tela de itens, sem estado próprio: só desenha o que recebe.
  *
- * @param state estado da tela (itens, carregando, item em edição).
+ * @param state estado da tela (itens, carregando, item em edição, lista e diálogo de detalhes).
  * @param newItemName texto atual do campo "Adicionar item".
  * @param nameInput texto atual do campo do diálogo de edição.
  * @param snackbarHostState hospedeiro das mensagens pontuais.
@@ -178,6 +178,16 @@ fun ListItemsScreen(
  * @param onNameInputChange chamado a cada alteração do nome no diálogo.
  * @param onSaveItemName chamado ao tocar em "Salvar" no diálogo.
  * @param onDismissEdit chamado ao cancelar o diálogo.
+ * @param storeInput texto atual do campo "Supermercado" no diálogo de detalhes.
+ * @param storeSuggestions supermercados do catálogo que combinam com [storeInput].
+ * @param dateInput data do rascunho (`AAAA-MM-DD`) ou `null`.
+ * @param showDatePicker `true` com o seletor de datas visível.
+ * @param onEditDetails chamado ao tocar no cartão de detalhes da compra.
+ * @param onStoreInputChange chamado a cada alteração do supermercado.
+ * @param onDateInputChange chamado ao escolher uma data, tocar em "Hoje" ou em "Limpar data".
+ * @param onDatePickerVisibleChange chamado para abrir ou fechar o seletor de datas.
+ * @param onSaveDetails chamado ao tocar em "Salvar" no diálogo de detalhes.
+ * @param onDismissDetails chamado ao cancelar o diálogo de detalhes.
  * @param modifier modificador do contêiner.
  */
 @Composable
@@ -436,6 +446,7 @@ private fun PurchaseDetailsCard(list: ShoppingList, onClick: () -> Unit) {
  *
  * @param store texto atual do campo "Supermercado".
  * @param dateIso data do rascunho (`AAAA-MM-DD`) ou `null`.
+ * @param storeSuggestions supermercados sugeridos, mostrados como chips sob o campo.
  * @param onStoreChange chamado a cada alteração do supermercado.
  * @param onPickDate chamado ao tocar no botão da data, para abrir o seletor.
  * @param onUseToday chamado ao tocar em "Hoje".

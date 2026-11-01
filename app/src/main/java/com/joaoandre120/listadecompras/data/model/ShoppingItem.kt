@@ -7,10 +7,12 @@ import com.google.firebase.firestore.ServerTimestamp
 /**
  * Item de uma lista de compras.
  *
+ * @property id identificador do documento (preenchido pelo Firestore).
  * @property name nome exibido (cópia do catálogo ou texto digitado).
  * @property productId id do [CatalogProduct]; `null` indica item digitado livremente.
  * @property checked `true` quando o item já foi comprado.
  * @property addedBy uid de quem adicionou o item.
+ * @property createdAt data de criação, preenchida pelo servidor.
  */
 data class ShoppingItem(
     @DocumentId val id: String = "",

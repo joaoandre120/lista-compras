@@ -7,10 +7,13 @@ import com.google.firebase.firestore.ServerTimestamp
 /**
  * Lista de compras, pertencente a um grupo ou privada.
  *
+ * @property id identificador do documento (preenchido pelo Firestore).
+ * @property name nome exibido da lista.
  * @property groupId id do grupo dono da lista; `null` indica lista privada.
  * @property ownerId uid de quem criou a lista.
  * @property store nome do supermercado da compra; `null` se não informado.
  * @property purchaseDate data da compra como texto `AAAA-MM-DD`, sem fuso; `null` se não informada.
+ * @property createdAt data de criação, preenchida pelo servidor.
  */
 data class ShoppingList(
     @DocumentId val id: String = "",

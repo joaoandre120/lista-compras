@@ -91,12 +91,15 @@ fun ListsScreen(
 /**
  * Conteúdo da tela de listas, sem estado próprio: só desenha o que recebe.
  *
- * @param state estado da tela (listas, carregando, ocupado).
+ * @param state estado da tela (listas, carregando, ocupado, lista a excluir).
  * @param newListName texto atual do campo "Nova lista".
  * @param snackbarHostState hospedeiro das mensagens pontuais.
  * @param onNewListNameChange chamado a cada alteração do nome da nova lista.
  * @param onCreateList chamado ao tocar em "Criar".
  * @param onListClick chamado ao tocar em uma lista; recebe o id da lista.
+ * @param onDeleteList chamado ao tocar na lixeira de uma lista; recebe a lista.
+ * @param onConfirmDelete chamado ao confirmar a exclusão no diálogo.
+ * @param onDismissDelete chamado ao cancelar o diálogo de exclusão.
  * @param modifier modificador do contêiner.
  */
 @Composable

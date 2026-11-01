@@ -49,6 +49,7 @@ import com.joaoandre120.listadecompras.ui.theme.ListaDeComprasTheme
  * do convite e nome de exibição) e trata os eventos (criar, entrar, convidar,
  * compartilhar, salvar nome), repassando tudo ao [GroupsScreenContent].
  *
+ * @param onGroupClick chamado ao tocar em um grupo; recebe o id do grupo.
  * @param modifier modificador do contêiner (normalmente o padding do Scaffold).
  * @param viewModel fonte do estado e das ações da tela.
  */
@@ -127,6 +128,9 @@ fun GroupsScreen(
  * @param onSaveDisplayName chamado ao tocar em "Salvar" no diálogo de nome.
  * @param onDismissNameDialog chamado ao cancelar o diálogo de nome.
  * @param onGroupClick Chamado ao tocar em um grupo; recebe o id do grupo.
+ * @param onLeaveClick chamado ao tocar em "Sair do grupo", com o grupo escolhido.
+ * @param onConfirmLeave chamado ao confirmar a saída no diálogo.
+ * @param onDismissLeave chamado ao cancelar o diálogo de saída.
  * @param modifier modificador do contêiner.
  */
 @Composable
@@ -257,6 +261,8 @@ fun GroupsScreenContent(
  * @param group grupo exibido.
  * @param membersText nomes dos membros, já formatados (ver [memberNamesText]).
  * @param inviteEnabled `false` desabilita o botão enquanto outra ação está em andamento.
+ * @param onClick chamado ao tocar no cartão, para abrir as listas do grupo.
+ * @param onLeaveClick chamado ao tocar no ícone de sair do grupo.
  * @param onInviteClick chamado ao tocar em "Convidar".
  */
 @Composable

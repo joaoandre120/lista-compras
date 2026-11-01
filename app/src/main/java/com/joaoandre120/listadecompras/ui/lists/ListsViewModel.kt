@@ -181,7 +181,12 @@ class ListsViewModel(
         _state.update { it.copy(isLoading = false, message = friendlyMessage(e)) }
     }
 
-    /** Converte exceções técnicas em texto próprio para o usuário. */
+    /**
+     * Converte exceções técnicas em texto próprio para o usuário.
+     *
+     * @param e exceção capturada.
+     * @return mensagem pronta para exibir.
+     */
     private fun friendlyMessage(e: Throwable): String =
         friendlyErrorMessage(e, "Sem permissão para acessar estas listas.")
 

@@ -17,9 +17,17 @@ import kotlinx.coroutines.tasks.await
 class ItemRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
-    /** Subcoleção de itens da lista [listId]. */
+
+    /**
+     * Subcoleção de itens de uma lista.
+     *
+     * @param listId id da lista.
+     * @return referência a `lists/{listId}/items`.
+     */
     private fun items(listId: String): CollectionReference =
-        firestore.collection("lists").document(listId).collection("items")
+        firestore.collection("lists")
+            .document(listId)
+            .collection("items")
 
     /**
      * Observa em tempo real os itens de uma lista.

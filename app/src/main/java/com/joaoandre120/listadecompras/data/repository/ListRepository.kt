@@ -18,6 +18,7 @@ import kotlinx.coroutines.tasks.await
 class ListRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
+
     private val lists = firestore.collection("lists")
 
     /**
@@ -116,7 +117,12 @@ class ListRepository(
         awaitClose { registration.remove() }
     }
 
-    /** Transforma uma consulta em fluxo; o listener é removido quando ninguém observa mais. */
+    /**
+     * Transforma uma consulta em fluxo; o listener é removido quando ninguém observa mais.
+     *
+     * @param query consulta já com os filtros que as regras exigem.
+     * @return fluxo que emite as listas a cada mudança; falhas fecham o fluxo com a exceção.
+     */
     private fun observe(query: Query): Flow<List<ShoppingList>> = callbackFlow {
         val registration = query.addSnapshotListener { snapshot, error ->
             if (error != null) {

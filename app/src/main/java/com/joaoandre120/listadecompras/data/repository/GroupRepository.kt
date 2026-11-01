@@ -166,8 +166,16 @@ class GroupRepository(
 
 }
 
-/** Erro de negócio ao usar um convite; a mensagem já é própria para exibir. */
+/**
+ * Erro de negócio ao usar um convite; a mensagem já é própria para exibir.
+ *
+ * @param message texto já próprio para exibir ao usuário.
+ */
 class InviteException(message: String) : Exception(message)
 
-/** Erro de negócio em operações de grupo; a mensagem já é própria para exibir. */
+/**
+ * Erro de negócio em operações de grupo; a mensagem já é própria para exibir.
+ *
+ * @param message texto já próprio para exibir ao usuário.
+ */
 class GroupException(message: String) : Exception(message)

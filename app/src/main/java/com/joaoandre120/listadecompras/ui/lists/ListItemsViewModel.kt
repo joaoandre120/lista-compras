@@ -55,6 +55,7 @@ data class ListItemsUiState(
  * @property listId id da lista recebido pela key de navegação.
  * @property authRepository garante o usuário logado e fornece o uid.
  * @property itemRepository acesso aos itens.
+ * @property listRepository acesso ao documento da lista (supermercado e data da compra).
  */
 class ListItemsViewModel(
     private val listId: String,
@@ -127,7 +128,11 @@ class ListItemsViewModel(
         if (checked) fillPurchaseDateIfEmpty()
     }
 
-    /** Abre o diálogo para editar o nome de [item]. */
+    /**
+     * Abre o diálogo para editar o nome de [item].
+     *
+     * @param item item cujo nome será editado.
+     */
     fun startEditing(item: ShoppingItem) = _state.update { it.copy(itemBeingEdited = item) }
 
     /** Fecha o diálogo de edição sem salvar. */
@@ -148,7 +153,11 @@ class ListItemsViewModel(
         }
     }
 
-    /** Remove [item] da lista. */
+    /**
+     * Remove [item] da lista.
+     *
+     * @param item item a remover.
+     */
     fun deleteItem(item: ShoppingItem) {
         launchSafely { itemRepository.deleteItem(listId, item.id) }
     }
@@ -233,7 +242,13 @@ class ListItemsViewModel(
         return problem == null
     }
 
-    /** Pendentes primeiro, depois os marcados; em cada grupo, ordem alfabética. */
+    /**
+     * Ordena para exibição: pendentes primeiro, depois os marcados; em cada grupo,
+     * ordem alfabética.
+     *
+     * @param items itens como chegaram do Firestore (sem ordem definida).
+     * @return os mesmos itens, na ordem de exibição.
+     */
     private fun sortForDisplay(items: List<ShoppingItem>): List<ShoppingItem> =
         items.sortedWith(
             compareBy<ShoppingItem>({ item -> item.checked }, { item -> item.name.lowercase() })

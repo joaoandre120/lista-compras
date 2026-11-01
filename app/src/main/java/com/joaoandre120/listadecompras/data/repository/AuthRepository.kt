@@ -11,6 +11,8 @@ import kotlin.coroutines.cancellation.CancellationException
 /**
  * Encapsula o acesso ao Firebase Auth, para que telas e ViewModels
  * não dependam diretamente do SDK.
+ *
+ * @property auth instância do Firebase Auth (injetável para testes).
  */
 class AuthRepository(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()

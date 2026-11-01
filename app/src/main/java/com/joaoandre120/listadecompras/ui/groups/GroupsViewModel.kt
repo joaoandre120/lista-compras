@@ -58,6 +58,7 @@ data class GroupsUiState(
  *
  * @property authRepository garante o usuário logado e fornece o uid.
  * @property groupRepository acesso aos grupos e convites.
+ * @property userRepository acesso aos perfis (nome de exibição dos membros).
  */
 class GroupsViewModel(
     private val authRepository: AuthRepository = AuthRepository(),
@@ -290,7 +291,12 @@ class GroupsViewModel(
         _state.update { it.copy(isLoading = false, message = friendlyMessage(e)) }
     }
 
-    /** Converte exceções técnicas em texto próprio para o usuário. */
+    /**
+     * Converte exceções técnicas em texto próprio para o usuário.
+     *
+     * @param e exceção capturada.
+     * @return mensagem pronta para exibir.
+     */
     private fun friendlyMessage(e: Throwable): String =
         friendlyErrorMessage(e, "Sem permissão para acessar estas listas.")
 
