@@ -51,7 +51,7 @@ object ProductCatalog {
         CatalogProduct("biscoito", "Biscoito", "Mercearia"),
 
         CatalogProduct("cha-em-sache", "Chá em sachê", "Mercearia"),
-        CatalogProduct("cha-em-folhas_ervas", "Chá em folhas (erva)", "Mercearia"),
+        CatalogProduct("cha-em-folhas", "Chá em folhas (erva)", "Mercearia"),
         CatalogProduct("sal-grosso", "Sal grosso", "Mercearia"),
         CatalogProduct("sal-rosa", "Sal rosa", "Mercearia"),
         CatalogProduct("amendoim", "Amendoim", "Mercearia"),
@@ -73,7 +73,6 @@ object ProductCatalog {
         // Laticínios
         CatalogProduct("leite", "Leite", "Laticínios"),
         CatalogProduct("queijo-mussarela", "Queijo mussarela", "Laticínios"),
-        CatalogProduct("queijo-zero-lactose", "Queijo zero lactose", "Laticínios"),
         CatalogProduct("manteiga", "Manteiga", "Laticínios"),
         CatalogProduct("iogurte", "Iogurte", "Laticínios"),
         CatalogProduct("requeijao", "Requeijão", "Laticínios"),
@@ -81,7 +80,9 @@ object ProductCatalog {
         CatalogProduct("leite-em-po", "Leite em pó", "Laticínios"),
         CatalogProduct("leite-zero-lactose", "Leite zero lactose", "Laticínios"),
         CatalogProduct("leite-condensado", "Leite condensado", "Laticínios"),
+        CatalogProduct("leite-condensado-zero-lactose", "Leite condensado zero lactose", "Laticínios"),
         CatalogProduct("creme-de-leite", "Creme de leite", "Laticínios"),
+        CatalogProduct("creme-de-leite-zero-lactose", "Creme de leite zero lactose", "Laticínios"),
         CatalogProduct("queijo", "Queijo", "Laticínios"),
         CatalogProduct("queijo-zero-lactose", "Queijo zero lactose", "Laticínios"),
         CatalogProduct("queijo-parmesao", "Queijo parmesão", "Laticínios"),
@@ -125,7 +126,7 @@ object ProductCatalog {
         CatalogProduct("agua-de-coco", "Água de coco", "Bebidas"),
         CatalogProduct("cha-pronto", "Chá pronto", "Bebidas"),
         CatalogProduct("cerveja", "Cerveja", "Bebidas"),
-        CatalogProduct("agua-com-gas", "Água com gas", "Bebidas"),
+        CatalogProduct("agua-com-gas", "Água com gás", "Bebidas"),
         CatalogProduct("vinho", "Vinho", "Bebidas"),
 
         // Limpeza
