@@ -6,6 +6,7 @@ import com.joaoandre120.listadecompras.data.model.Group
 import com.joaoandre120.listadecompras.data.repository.AuthRepository
 import com.joaoandre120.listadecompras.data.repository.GroupException
 import com.joaoandre120.listadecompras.data.repository.GroupRepository
+import com.joaoandre120.listadecompras.data.repository.InviteException
 import com.joaoandre120.listadecompras.data.repository.UserRepository
 import com.joaoandre120.listadecompras.ui.common.NOT_SIGNED_IN_MESSAGE
 import com.joaoandre120.listadecompras.ui.common.friendlyErrorMessage
@@ -245,7 +246,15 @@ class GroupsViewModel(
             return
         }
         runAction {
-            groupRepository.joinWithCode(code, id)
+            try {
+                groupRepository.joinWithCode(code, id)
+            } catch (e: Exception) {
+                // Recusa das regras: grupo sem membros ou você já é membro.
+                if (isPermissionDenied(e)) {
+                    throw InviteException("Não foi possível entrar: o grupo não está mais disponível ou você já faz parte dele.")
+                }
+                throw e   // inclui CancellationException: runAction a relança
+            }
             _state.update { it.copy(message = "Você entrou no grupo") }
         }
     }
