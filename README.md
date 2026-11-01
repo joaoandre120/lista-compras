@@ -17,6 +17,8 @@ App Android de lista de compras **compartilhada** entre família e amigos, com a
 - Navegação com abas (Grupos / Privadas) e telas internas, usando Navigation 3.
 - Tela de itens da lista (marcar, editar, remover) em tempo real.
 - Catálogo de produtos embutido, com sugestões ao digitar (ignora acentos e maiúsculas).
+  - A busca ignora acentos e maiúsculas e prioriza os nomes que começam com o texto digitado (e, entre eles, os mais curtos).
+  - Aviso de item já presente na lista, sem bloquear duplicatas: você pode querer duas linhas do mesmo produto, como duas marcas/tipos de arroz.
 - Supermercado e data da compra em cada lista, com sugestões de mercados (catálogo embutido) e seletor de data. Ao marcar o primeiro item, a data é preenchida com a de hoje se ainda estiver vazia.
 - Indicador de conexão (online/offline) na barra superior.
 - Excluir lista.
