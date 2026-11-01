@@ -48,6 +48,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            if (keystoreProperties.isNotEmpty()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+//            applicationIdSuffix = ".debug"
+//            Instalaria como uma outra "instancia", mas não teria acesso ao mesmo firebase
+        }
         release {
             if (keystoreProperties.isNotEmpty()) {
                 signingConfig = signingConfigs.getByName("release")
