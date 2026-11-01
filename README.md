@@ -12,6 +12,8 @@ App Android de lista de compras **compartilhada** entre família e amigos, com a
 - Perfil com nome de exibição, obrigatório na primeira abertura e editável depois.
 - Grupos (família, amigos): uma pessoa pode estar em vários.
 - Convite por código de 8 caracteres (válido por 7 dias), compartilhável pela folha de compartilhamento do Android.
+- Entrada em grupo pelo código com outro usuário, incluindo o limite de usos do convite (`maxUses`).
+- Sair do grupo (membro comum): diálogo de confirmação e perda de acesso ao grupo e às listas dele; as listas continuam para quem ficou.
 - Entrada em grupo pelo código, em operação atômica (sem Cloud Functions).
 - Listas de cada grupo e listas privadas, em tempo real.
 - Navegação com abas (Grupos / Privadas) e telas internas, usando Navigation 3.
@@ -25,8 +27,12 @@ App Android de lista de compras **compartilhada** entre família e amigos, com a
 
 **Implementado, ainda não testado**
 
-- Sair do grupo: o código já existe (diálogo de confirmação, transação no repositório e regras de segurança), mas o caso do **último admin** ainda não foi validado. A intenção é que, se o único admin sair e houver outros membros, o membro mais antigo seja promovido a admin automaticamente; se for o único membro, o grupo fica vazio. Falta testar esse fluxo, inclusive a corrida entre dois admins saindo ao mesmo tempo.
-- Entrada em grupo com um segundo usuário e o limite de usos do convite (`maxUses`).
+- Sair do grupo sendo **admin**: o código já existe (transação no repositório e regras de segurança). Se o único admin sair e houver outros membros, o membro mais antigo é promovido a admin automaticamente. Falta validar esse fluxo, inclusive a corrida entre dois admins saindo ao mesmo tempo (as regras recusam a gravação que deixaria o grupo sem admin).
+
+**Limitações conhecidas**
+
+- **Grupo órfão:** se o único membro sai, o grupo fica com `memberIds` vazio e não é excluído, mas as regras permitem que alguém entre nele por convite. A limpeza fica para depois, com um script (Admin SDK) ou uma exclusão em cascata.
+- **Conta anônima:** ao desinstalar o app ou limpar os dados, o acesso aos grupos é perdido. A vinculação com o login do Google resolve isso, ou backup e restauração.
 
 **Próximos passos**
 
