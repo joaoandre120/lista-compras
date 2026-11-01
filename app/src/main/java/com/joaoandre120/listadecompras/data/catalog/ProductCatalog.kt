@@ -172,7 +172,10 @@ object ProductCatalog {
     /**
      * Busca produtos cujo nome contém o texto digitado, ignorando
      * maiúsculas/minúsculas e acentos ("feijao" encontra "Feijão").
-     * Nomes que começam com o texto vêm primeiro.
+     *
+     * Ordem do resultado: primeiro os nomes que começam com o texto, depois os que
+     * apenas o contêm; em cada grupo, ordem alfabética do nome normalizado
+     * (ex.: "leite" traz Leite, Leite condensado... antes de Creme de leite).
      *
      * @param query texto digitado pelo usuário.
      * @return produtos que combinam; lista vazia se a consulta estiver em branco.
@@ -188,7 +191,7 @@ object ProductCatalog {
             .sortedWith(
                 compareBy<CatalogProduct>(
                     { if (it.name.normalizedForSearch().startsWith(q)) 0 else 1 },
-                    { it.name.length }
+                    { it.name.normalizedForSearch() }
                 )
             )
     }
